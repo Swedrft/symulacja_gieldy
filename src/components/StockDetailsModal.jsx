@@ -134,7 +134,7 @@ export function StockDetailsModal({ stock, onClose }) {
           <Briefcase size={20} /> Transakcja
         </h3>
         
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-4">
           <button 
             className={`flex-1 py-2 btn ${actionType === 'buy' ? 'btn-success' : 'btn-outline'}`}
             onClick={() => { setActionType('buy'); setError(''); setSuccess(''); }}
@@ -149,7 +149,7 @@ export function StockDetailsModal({ stock, onClose }) {
           </button>
         </div>
 
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-4">
           <button 
             className={`flex-1 py-1 btn ${tradeMode === 'market' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setTradeMode('market')}
