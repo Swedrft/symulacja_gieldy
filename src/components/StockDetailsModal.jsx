@@ -41,8 +41,8 @@ export function StockDetailsModal({ stock, onClose }) {
   };
 
   const renderSummaryTab = () => (
-    <div className="grid md:grid-cols-3 gap-8">
-      <div className="md:col-span-2 flex flex-col gap-6">
+    <div className="dashboard-grid-2">
+      <div className="flex flex-col gap-6">
         {/* Main Chart */}
         <div style={{ height: '400px', width: '100%' }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -72,7 +72,7 @@ export function StockDetailsModal({ stock, onClose }) {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-black/20 rounded-lg">
+        <div className="grid grid-cols-4 gap-4 p-4 bg-black/20 rounded-lg">
           <div>
             <div className="text-xs text-muted mb-1">Zakres 52 tyg.</div>
             <div className="font-bold">{stock.fundamentals.min52Week} - {stock.fundamentals.max52Week}</div>
@@ -228,7 +228,7 @@ export function StockDetailsModal({ stock, onClose }) {
     ];
 
     return (
-      <div className="grid md:grid-cols-2 gap-8 animate-fade-in">
+      <div className="grid grid-cols-2 gap-8 animate-fade-in">
         <div className="glass-panel">
           <h3 className="text-xl font-bold mb-6 border-b border-[rgba(255,255,255,0.1)] pb-2 flex items-center gap-2">
             <Users /> Rekomendacja Analityków
