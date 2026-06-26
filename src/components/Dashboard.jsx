@@ -62,7 +62,7 @@ export function Dashboard({ brokerState, marketData }) {
         <p className="text-muted">Centrum dowodzenia i analityki Twojego portfela</p>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+      <div className="dashboard-grid-3">
         <div className="glass-panel">
           <div className="text-sm text-muted mb-2 flex items-center gap-2"><DollarSign size={16}/> Wartość Konta</div>
           <div className="text-3xl font-bold mb-2">{totalValue.toFixed(2)} PLN</div>
@@ -85,7 +85,7 @@ export function Dashboard({ brokerState, marketData }) {
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+      <div className="dashboard-grid-2">
         <div className="glass-panel flex flex-col">
           <h3 className="mb-4 text-gradient">Historia Wartości Konta</h3>
           <div style={{ height: '300px', width: '100%' }}>
@@ -136,7 +136,7 @@ export function Dashboard({ brokerState, marketData }) {
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div className="dashboard-grid-2">
         <div className="glass-panel">
           <h3 className="mb-6 text-gradient">Twój Portfel</h3>
           <div style={{ overflowX: 'auto' }}>

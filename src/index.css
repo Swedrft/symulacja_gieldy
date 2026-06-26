@@ -251,8 +251,28 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @media (max-width: 768px) {
-  .grid-cols-2, .grid-cols-3, .grid-cols-4 { grid-template-columns: 1fr; }
-  .nav-links { display: none; } /* Simplified for mobile */
+  .grid, .grid-cols-2, .grid-cols-3, .grid-cols-4 { grid-template-columns: 1fr !important; }
+  .navbar { flex-direction: column; gap: 1rem; padding: 1rem; }
+  .nav-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+  .main-content { padding: 1rem; }
+  .glass-panel { padding: 1rem; }
+  .text-3xl { font-size: 1.5rem; }
+}
+
+.md\:grid-cols-2 { display: grid; gap: 2rem; }
+@media (min-width: 769px) {
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+}
+
+.dashboard-grid-3 { display: grid; gap: 1.5rem; margin-bottom: 2rem; grid-template-columns: repeat(3, 1fr); }
+.dashboard-grid-2 { display: grid; gap: 1.5rem; margin-bottom: 2rem; grid-template-columns: 2fr 1fr; }
+
+@media (max-width: 1024px) {
+  .dashboard-grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-grid-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .dashboard-grid-3 { grid-template-columns: 1fr; }
 }
 
 /* Tables / Lists */
