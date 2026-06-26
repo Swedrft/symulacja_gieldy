@@ -51,14 +51,28 @@ export function StockDetailsModal({ stock, onClose }) {
     try {
       if (tradeMode === 'market') {
         const total = quantity * currentPrice;
-        const msg = brokerService.executeMarketOrder(stock.id, actionType, quantity, currentPrice);
-        setSuccess(`${msg} Wartość rynkowa: ${total.toFixed(2)} PLN`);
+        let res;
+        if (actionType === 'buy') {
+          res = brokerService.buyStock(stock.id, quantity);
+        } else {
+          res = brokerService.sellStock(stock.id, quantity);
+        }
+        
+        if (!res.success) {
+          setError(res.error);
+          return;
+        }
+        setSuccess(`Zlecenie rynkowe zrealizowane. Wartość: ${total.toFixed(2)} PLN`);
       } else {
-        brokerService.placeLimitOrder(stock.id, actionType, quantity, limitPrice);
+        const res = brokerService.placeLimitOrder(actionType, stock.id, quantity, limitPrice);
+        if (!res.success) {
+          setError(res.error);
+          return;
+        }
         setSuccess(`Zlecenie oczekujące (Limit ${actionType === 'buy' ? 'Kupna' : 'Sprzedaży'}) zostało złożone po cenie ${limitPrice.toFixed(2)} PLN.`);
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Wystąpił nieoczekiwany błąd');
     }
   };
 
