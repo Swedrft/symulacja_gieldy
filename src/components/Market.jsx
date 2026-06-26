@@ -32,71 +32,61 @@ export function Market({ marketData }) {
         ))}
       </div>
 
-      <div className="glass-panel">
-        <div style={{ overflowX: 'auto' }}>
-          <table className="stock-list">
-            <thead>
-              <tr>
-                <th>Firma / Walor</th>
-                <th>Kategoria</th>
-                <th>Cena Rynkowa</th>
-                <th style={{ width: '120px' }}>Wykres (Trend)</th>
-                <th>Zmiana</th>
-                <th className="text-right">Akcja</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.map(stock => {
-                const chartData = stock.history.map((val, i) => ({ index: i, value: val }));
-                const isUp = stock.trend === 'up';
+      <div className="md:grid-cols-2 lg:grid-cols-3" style={{ display: 'grid', gap: '1.5rem' }}>
+        {filteredData.map(stock => {
+          const chartData = stock.history.map((val, i) => ({ index: i, value: val }));
+          const isUp = stock.trend === 'up';
+          
+          return (
+            <div 
+              key={stock.id} 
+              className="glass-panel stock-card p-4 cursor-pointer flex flex-col justify-between"
+              onClick={() => setSelectedStock(stock)}
+            >
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="font-bold text-xl">{stock.name}</div>
+                    <div className="text-muted text-sm flex gap-2 items-center mt-1">
+                      <span>{stock.id}</span>
+                      <span className="badge" style={{ background: 'rgba(255,255,255,0.1)', fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}>{stock.category}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-2xl">{stock.price.toFixed(2)} PLN</div>
+                    <div className={`flex items-center justify-end gap-1 font-bold ${isUp ? 'text-success' : 'text-danger'}`}>
+                      {isUp ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                      {Math.abs(stock.change).toFixed(2)} ({((stock.change / (stock.price - stock.change)) * 100).toFixed(2)}%)
+                    </div>
+                  </div>
+                </div>
                 
-                return (
-                  <tr key={stock.id} className="stock-row" onClick={() => setSelectedStock(stock)} style={{ cursor: 'pointer' }}>
-                    <td>
-                      <div className="font-bold">{stock.name}</div>
-                      <div className="text-muted text-sm">{stock.id}</div>
-                    </td>
-                    <td>
-                      <span className="badge" style={{ background: 'rgba(255,255,255,0.1)' }}>{stock.category}</span>
-                    </td>
-                    <td className="font-bold text-lg">{stock.price.toFixed(2)}</td>
-                    <td>
-                      <div style={{ width: '100px', height: '40px' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={chartData}>
-                            <YAxis domain={['auto', 'auto']} hide />
-                            <Line 
-                              type="monotone" 
-                              dataKey="value" 
-                              stroke={isUp ? 'var(--success)' : 'var(--danger)'} 
-                              strokeWidth={2} 
-                              dot={false} 
-                              isAnimationActive={false}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </td>
-                    <td>
-                      <div className={`flex items-center gap-1 ${isUp ? 'text-success' : 'text-danger'}`}>
-                        {isUp ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
-                        {Math.abs(stock.change).toFixed(2)}
-                      </div>
-                    </td>
-                    <td className="text-right">
-                      <button 
-                        className="btn btn-primary"
-                        onClick={(e) => { e.stopPropagation(); setSelectedStock(stock); }}
-                      >
-                        <ShoppingCart size={16} /> Handluj
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                <div style={{ height: '80px', width: '100%', margin: '1rem 0' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <YAxis domain={['auto', 'auto']} hide />
+                      <Line 
+                        type="monotone" 
+                        dataKey="value" 
+                        stroke={isUp ? 'var(--success)' : 'var(--danger)'} 
+                        strokeWidth={2} 
+                        dot={false} 
+                        isAnimationActive={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <button 
+                className="btn btn-primary w-full py-3 text-lg flex items-center justify-center gap-2 mt-2"
+                onClick={(e) => { e.stopPropagation(); setSelectedStock(stock); }}
+              >
+                <ShoppingCart size={20} /> Handluj
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       {selectedStock && (
