@@ -73,7 +73,7 @@ class MarketService {
       let minPrice = stock.price;
       let maxPrice = stock.price;
 
-      for (let i = 0; i < 180; i++) {
+      for (let i = 0; i < 1000; i++) {
         momentum += (Math.random() - 0.5) * 0.005;
         if (momentum > 0.02) momentum = 0.02;
         if (momentum < -0.02) momentum = -0.02;
@@ -234,7 +234,7 @@ class MarketService {
         const oldPrice = stock.price;
         const newPrice = oldPrice * (1 + changePercent);
         
-        const newHistory = [...stock.history, newPrice].slice(-180);
+        const newHistory = [...stock.history, newPrice].slice(-1000);
         
         return {
           ...stock,

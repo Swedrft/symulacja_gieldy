@@ -6,6 +6,7 @@ import { brokerService } from '../services/brokerService';
 
 export function StockDetailsModal({ stock, onClose }) {
   const [activeTab, setActiveTab] = useState('summary');
+  const [timeRange, setTimeRange] = useState('6M');
   const [tradeMode, setTradeMode] = useState('market'); // market | limit
   const [actionType, setActionType] = useState('buy'); // buy | sell
   const [quantity, setQuantity] = useState(1);
@@ -17,10 +18,29 @@ export function StockDetailsModal({ stock, onClose }) {
   const currentPrice = stock.price;
   const isUp = stock.trend === 'up';
 
-  const chartData = stock.history.map((val, i) => ({
-    name: `Dzień -${180 - i}`,
-    price: val
-  }));
+  const getDaysForRange = (range) => {
+    switch(range) {
+      case '3M': return 90;
+      case '6M': return 180;
+      case '1R': return 365;
+      case '2L': return 730;
+      case '3L': return 1095;
+      case 'MAX': return stock.history.length;
+      default: return 180;
+    }
+  };
+
+  const daysToTake = getDaysForRange(timeRange);
+  const slicedHistory = stock.history.slice(-daysToTake);
+  
+  const chartData = slicedHistory.map((val, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (slicedHistory.length - 1 - i));
+    return {
+      name: date.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      cena: val
+    };
+  });
 
   const handleTrade = (e) => {
     e.preventDefault();
@@ -45,31 +65,44 @@ export function StockDetailsModal({ stock, onClose }) {
     <div className="dashboard-grid-2">
       <div className="flex flex-col gap-6">
         {/* Main Chart */}
-        <div style={{ height: '400px', width: '100%' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={isUp ? 'var(--success)' : 'var(--danger)'} stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor={isUp ? 'var(--success)' : 'var(--danger)'} stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="name" hide />
-              <YAxis domain={['auto', 'auto']} stroke="var(--text-muted)" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px' }}
-                itemStyle={{ color: 'var(--text-main)' }}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="price" 
-                stroke={isUp ? 'var(--success)' : 'var(--danger)'} 
-                fillOpacity={1} 
-                fill="url(#colorPrice)" 
-                isAnimationActive={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            {['3M', '6M', '1R', '2L', '3L', 'MAX'].map(range => (
+              <button 
+                key={range}
+                className={`text-sm px-3 py-1 rounded transition-colors ${timeRange === range ? 'bg-primary text-white' : 'bg-[rgba(255,255,255,0.05)] text-muted hover:bg-[rgba(255,255,255,0.1)]'}`}
+                onClick={() => setTimeRange(range)}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+          <div style={{ height: '400px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={isUp ? 'var(--success)' : 'var(--danger)'} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={isUp ? 'var(--success)' : 'var(--danger)'} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" hide />
+                <YAxis domain={['auto', 'auto']} stroke="var(--text-muted)" />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px' }}
+                  itemStyle={{ color: 'var(--text-main)' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="cena" 
+                  stroke={isUp ? 'var(--success)' : 'var(--danger)'} 
+                  fillOpacity={1} 
+                  fill="url(#colorPrice)" 
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Quick Stats */}
