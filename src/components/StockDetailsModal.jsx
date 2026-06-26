@@ -79,7 +79,7 @@ export function StockDetailsModal({ stock, onClose }) {
               </button>
             ))}
           </div>
-          <div style={{ height: '400px', width: '100%' }}>
+          <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -251,7 +251,7 @@ export function StockDetailsModal({ stock, onClose }) {
       <div className="flex flex-col gap-8 animate-fade-in">
         <h3 className="text-2xl font-bold flex items-center gap-2 mb-2"><BarChart2 /> Rachunek Zysków i Strat</h3>
         
-        <div style={{ height: '400px', width: '100%' }}>
+        <div className="chart-container">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={finData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
