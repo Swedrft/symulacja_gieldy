@@ -101,7 +101,7 @@ export function Market({ marketData }) {
 
       {selectedStock && (
         <StockDetailsModal 
-          stock={selectedStock} 
+          stock={marketData.find(s => s.id === selectedStock.id) || selectedStock} 
           onClose={() => setSelectedStock(null)} 
         />
       )}

@@ -134,13 +134,13 @@ export function StockDetailsModal({ stock, onClose }) {
         
         <div className="flex gap-2 mb-6">
           <button 
-            className={`flex-1 py-2 rounded font-bold transition-all ${actionType === 'buy' ? 'bg-success text-white' : 'bg-success/10 text-success hover:bg-success/20'}`}
+            className={`flex-1 py-2 btn ${actionType === 'buy' ? 'btn-success' : 'btn-outline'}`}
             onClick={() => { setActionType('buy'); setError(''); setSuccess(''); }}
           >
             KUP
           </button>
           <button 
-            className={`flex-1 py-2 rounded font-bold transition-all ${actionType === 'sell' ? 'bg-danger text-white' : 'bg-danger/10 text-danger hover:bg-danger/20'}`}
+            className={`flex-1 py-2 btn ${actionType === 'sell' ? 'btn-danger' : 'btn-outline'}`}
             onClick={() => { setActionType('sell'); setError(''); setSuccess(''); }}
           >
             SPRZEDAJ
@@ -149,13 +149,13 @@ export function StockDetailsModal({ stock, onClose }) {
 
         <div className="flex gap-2 mb-6">
           <button 
-            className={`flex-1 text-sm py-1 rounded transition-all ${tradeMode === 'market' ? 'bg-[rgba(255,255,255,0.2)] text-white' : 'bg-transparent text-muted hover:bg-[rgba(255,255,255,0.05)]'}`}
+            className={`flex-1 py-1 btn ${tradeMode === 'market' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setTradeMode('market')}
           >
             Zlecenie Rynkowe
           </button>
           <button 
-            className={`flex-1 text-sm py-1 rounded transition-all ${tradeMode === 'limit' ? 'bg-[rgba(255,255,255,0.2)] text-white' : 'bg-transparent text-muted hover:bg-[rgba(255,255,255,0.05)]'}`}
+            className={`flex-1 py-1 btn ${tradeMode === 'limit' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setTradeMode('limit')}
           >
             Zlecenie z Limitem
@@ -214,6 +214,25 @@ export function StockDetailsModal({ stock, onClose }) {
             {actionType === 'buy' ? 'KUP TERAZ' : 'SPRZEDAJ TERAZ'}
           </button>
         </form>
+
+        {/* Company News */}
+        <div className="mt-8">
+          <h3 className="mb-4 text-xl font-bold border-b border-[rgba(255,255,255,0.1)] pb-2 flex items-center gap-2">
+            Wydarzenia
+          </h3>
+          <div className="flex flex-col gap-3" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+            {marketService.getNewsHistory().filter(n => n.stockId === stock.id).length === 0 ? (
+              <div className="text-muted text-sm text-center">Brak nowych wydarzeń dla tej spółki.</div>
+            ) : (
+              marketService.getNewsHistory().filter(n => n.stockId === stock.id).map(news => (
+                <div key={news.id} className="p-3 rounded bg-black/20 border-l-4" style={{ borderColor: news.isPositive ? 'var(--success)' : 'var(--danger)' }}>
+                  <div className="text-xs text-muted mb-1">{new Date(news.date).toLocaleTimeString()}</div>
+                  <div className="text-sm">{news.message}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -338,6 +357,7 @@ export function StockDetailsModal({ stock, onClose }) {
       >
         <button 
           className="absolute top-4 right-4 text-muted hover:text-white transition-colors"
+          style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', padding: '0.5rem', cursor: 'pointer' }}
           onClick={onClose}
         >
           <X size={24} />
