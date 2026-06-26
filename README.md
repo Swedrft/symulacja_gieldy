@@ -1,0 +1,1 @@
+# symulacja_gieldy
