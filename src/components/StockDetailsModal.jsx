@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Legend, Cell, PieChart, Pie } from 'recharts';
 import { X, TrendingUp, TrendingDown, DollarSign, Activity, Users, Info, BarChart2, Briefcase } from 'lucide-react';
 import { brokerService } from '../services/brokerService';
@@ -293,8 +294,10 @@ export function StockDetailsModal({ stock, onClose }) {
     );
   };
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
+  if (!document.body) return null;
+
+  return ReactDOM.createPortal(
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
       <div 
         className="glass-panel modal-content relative" 
         onClick={e => e.stopPropagation()} 
@@ -354,6 +357,7 @@ export function StockDetailsModal({ stock, onClose }) {
         {activeTab === 'earnings' && renderEarningsTab()}
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
