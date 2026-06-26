@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Legend, Cell, PieChart, Pie } from 'recharts';
 import { X, TrendingUp, TrendingDown, DollarSign, Activity, Users, Info, BarChart2, Briefcase } from 'lucide-react';
 import { brokerService } from '../services/brokerService';
+import { marketService } from '../services/marketService';
 
 export function StockDetailsModal({ stock, onClose }) {
   const [activeTab, setActiveTab] = useState('summary');
