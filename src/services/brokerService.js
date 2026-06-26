@@ -10,8 +10,36 @@ class BrokerService {
     this.state = this.loadState();
     this.listeners = [];
 
-    // Nasłuchujemy zmian na rynku, aby realizować zlecenia z limitem
-    marketService.subscribe((stocks) => this.checkLimitOrders(stocks));
+    // Nasłuchujemy zmian na rynku, aby realizować zlecenia z limitem i księgować dywidendy
+    marketService.subscribe((stocks, currentNews, newsHistory, dividendEvent) => {
+      this.checkLimitOrders(stocks);
+      if (dividendEvent) {
+        this.processDividend(dividendEvent);
+      }
+    });
+  }
+
+  processDividend(dividendEvent) {
+    const { stockId, dividendPerShare } = dividendEvent;
+    const portfolioStock = this.state.portfolio[stockId];
+    
+    if (portfolioStock && portfolioStock.quantity > 0) {
+      const payout = portfolioStock.quantity * dividendPerShare;
+      this.state.balance += payout;
+      
+      this.state.transactions.unshift({
+        id: Date.now().toString() + 'div',
+        type: 'DIVIDEND',
+        stockId,
+        quantity: portfolioStock.quantity,
+        price: dividendPerShare, // jako kwota per akcja
+        commission: 0,
+        total: payout,
+        date: new Date().toISOString()
+      });
+      
+      this.saveState();
+    }
   }
 
   loadState() {

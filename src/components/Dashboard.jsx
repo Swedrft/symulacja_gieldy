@@ -1,159 +1,198 @@
 import React from 'react';
-import { ArrowUpRight, ArrowDownRight, Briefcase, TrendingUp } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell, Legend
+} from 'recharts';
+import { TrendingUp, TrendingDown, DollarSign, Briefcase, Activity, RadioReceiver } from 'lucide-react';
+import { marketService } from '../services/marketService';
+
+const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#64748b'];
 
 export function Dashboard({ brokerState, marketData }) {
-  // Calculate Portfolio Value
-  let portfolioValue = 0;
-  const portfolioDetails = [];
+  // Obliczanie wartości portfela z uwzględnieniem kategorii
+  let totalStockValue = 0;
+  const categoryValues = {};
   
-  Object.keys(brokerState.portfolio).forEach(stockId => {
-    const p = brokerState.portfolio[stockId];
+  const portfolioItems = Object.entries(brokerState.portfolio).map(([stockId, data]) => {
     const stock = marketData.find(s => s.id === stockId);
-    if (stock) {
-      const currentPrice = stock.price;
-      const totalCurrentValue = p.quantity * currentPrice;
-      const totalInvested = p.quantity * p.averagePrice;
-      const profit = totalCurrentValue - totalInvested;
-      const profitPercent = (profit / totalInvested) * 100;
-      
-      portfolioValue += totalCurrentValue;
-      
-      portfolioDetails.push({
-        id: stockId,
-        name: stock.name,
-        quantity: p.quantity,
-        avgPrice: p.averagePrice,
-        currentPrice,
-        totalValue: totalCurrentValue,
-        profit,
-        profitPercent
-      });
-    }
-  });
+    if (!stock) return null;
+    
+    const currentPrice = stock.price;
+    const value = data.quantity * currentPrice;
+    const profit = value - (data.quantity * data.averagePrice);
+    const profitPercent = (profit / (data.quantity * data.averagePrice)) * 100;
+    
+    totalStockValue += value;
+    categoryValues[stock.category] = (categoryValues[stock.category] || 0) + value;
 
-  const totalAssets = brokerState.balance + portfolioValue;
-  const totalProfit = totalAssets - 10000; // 10000 is initial balance
-  const totalProfitPercent = (totalProfit / 10000) * 100;
+    return {
+      ...stock,
+      quantity: data.quantity,
+      averagePrice: data.averagePrice,
+      currentValue: value,
+      profit,
+      profitPercent
+    };
+  }).filter(Boolean);
 
-  // Generate fake chart data based on transactions to show some history (simplified)
-  const chartData = [
-    { name: 'Start', value: 10000 },
-    ...brokerState.transactions.map((t, index) => {
-      // Very naive approach: we just simulate a smooth curve if there are transactions.
-      return {
-        name: new Date(t.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-        value: 10000 + (Math.random() * 500 - 250) // In a real app we'd calculate exact historical snapshots
-      }
-    }).reverse().slice(0, 10)
-  ];
-  if(chartData.length === 1) {
-    chartData.push({ name: 'Teraz', value: totalAssets });
+  const totalValue = brokerState.balance + totalStockValue;
+  const initialValue = 10000;
+  const totalProfit = totalValue - initialValue;
+  const totalProfitPercent = (totalProfit / initialValue) * 100;
+
+  // Przygotowanie danych do Pie Chart (Dywersyfikacja)
+  const pieData = Object.entries(categoryValues).map(([name, value]) => ({ name, value }));
+  // Dodanie gotówki do wykresu kołowego
+  if (brokerState.balance > 0) {
+    pieData.push({ name: 'Gotówka', value: brokerState.balance });
   }
 
+  // Przygotowanie dummy-historii do głównego wykresu konta
+  const accountHistoryData = [
+    { name: 'Start', value: initialValue },
+    { name: 'Teraz', value: totalValue }
+  ];
+
+  const newsHistory = marketService.getNewsHistory();
+
   return (
-    <div className="animate-fade-in grid gap-8">
-      <div>
-        <h1 className="text-gradient">Twój Pulpit Inwestora</h1>
-        <p className="text-muted">Przegląd Twojego wirtualnego konta i posiadanych akcji</p>
+    <div className="animate-fade-in">
+      <div className="mb-8">
+        <h1 className="text-gradient mb-2">Twój Pulpit</h1>
+        <p className="text-muted">Centrum dowodzenia i analityki Twojego portfela</p>
       </div>
-      
-      {/* Top Cards */}
-      <div className="grid grid-cols-3">
-        <div className="glass-panel flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-muted">
-            <Briefcase size={18} /> Wartość Całkowita
-          </div>
-          <div className="text-3xl font-bold">{totalAssets.toFixed(2)} PLN</div>
-          <div className={`flex items-center gap-1 ${totalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
-            {totalProfit >= 0 ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
-            <span>{Math.abs(totalProfit).toFixed(2)} PLN ({Math.abs(totalProfitPercent).toFixed(2)}%)</span>
-            <span className="text-muted text-sm ml-2">od początku</span>
+
+      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+        <div className="glass-panel">
+          <div className="text-sm text-muted mb-2 flex items-center gap-2"><DollarSign size={16}/> Wartość Konta</div>
+          <div className="text-3xl font-bold mb-2">{totalValue.toFixed(2)} PLN</div>
+          <div className={`text-sm flex items-center gap-1 ${totalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
+            {totalProfit >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+            {Math.abs(totalProfit).toFixed(2)} PLN ({totalProfitPercent.toFixed(2)}%)
           </div>
         </div>
 
-        <div className="glass-panel flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-muted">
-            <TrendingUp size={18} /> Wartość Akcji
-          </div>
-          <div className="text-3xl font-bold">{portfolioValue.toFixed(2)} PLN</div>
-          <div className="text-muted text-sm">Zainwestowano w {portfolioDetails.length} firm(y)</div>
+        <div className="glass-panel">
+          <div className="text-sm text-muted mb-2 flex items-center gap-2"><Briefcase size={16}/> Zainwestowano</div>
+          <div className="text-3xl font-bold mb-2">{totalStockValue.toFixed(2)} PLN</div>
+          <div className="text-sm text-muted">W aktywne pozycje giełdowe</div>
         </div>
 
-        <div className="glass-panel flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-muted">
-            Wolne Środki
-          </div>
-          <div className="text-3xl font-bold">{brokerState.balance.toFixed(2)} PLN</div>
-          <div className="text-muted text-sm">Gotowe do inwestycji</div>
+        <div className="glass-panel">
+          <div className="text-sm text-muted mb-2 flex items-center gap-2"><Activity size={16}/> Wolne Środki</div>
+          <div className="text-3xl font-bold mb-2 text-success">{brokerState.balance.toFixed(2)} PLN</div>
+          <div className="text-sm text-muted">Gotowe do zainwestowania</div>
         </div>
       </div>
 
-      {/* Chart Section */}
-      <div className="glass-panel" style={{ height: '300px' }}>
-        <h3 className="mb-4">Historia Wartości Portfela</h3>
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData}>
-            <defs>
-              <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-            <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis domain={['auto', 'auto']} stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => val.toFixed(0)} />
-            <Tooltip 
-              contentStyle={{ background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} 
-            />
-            <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
-          </AreaChart>
-        </ResponsiveContainer>
+      <div className="grid" style={{ gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+        <div className="glass-panel flex flex-col">
+          <h3 className="mb-4 text-gradient">Historia Wartości Konta</h3>
+          <div style={{ height: '300px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={accountHistoryData}>
+                <XAxis dataKey="name" stroke="var(--text-muted)" />
+                <YAxis domain={['auto', 'auto']} stroke="var(--text-muted)" />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px' }}
+                  itemStyle={{ color: 'var(--text-color)' }}
+                />
+                <Line type="monotone" dataKey="value" stroke="var(--primary)" strokeWidth={3} dot={{ r: 6 }} activeDot={{ r: 8 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="glass-panel flex flex-col">
+          <h3 className="mb-4 text-gradient">Dywersyfikacja</h3>
+          <div style={{ height: '300px', width: '100%' }}>
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value) => `${value.toFixed(2)} PLN`}
+                    contentStyle={{ backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px' }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-muted">Brak danych</div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Portfolio Table */}
-      <div className="glass-panel">
-        <h3 className="mb-4">Twoje Akcje</h3>
-        {portfolioDetails.length === 0 ? (
-          <div className="text-center text-muted py-8">
-            Nie masz jeszcze żadnych akcji. Przejdź do zakładki Rynek, aby dokonać pierwszego zakupu!
-          </div>
-        ) : (
+      <div className="grid" style={{ gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+        <div className="glass-panel">
+          <h3 className="mb-6 text-gradient">Twój Portfel</h3>
           <div style={{ overflowX: 'auto' }}>
             <table className="stock-list">
               <thead>
                 <tr>
-                  <th>Firma</th>
+                  <th>Walor</th>
+                  <th>Kategoria</th>
                   <th>Ilość</th>
-                  <th>Śr. Cena Zakupu</th>
+                  <th>Śr. Cena Kupna</th>
                   <th>Obecna Cena</th>
-                  <th>Wartość</th>
-                  <th>Zysk / Strata</th>
+                  <th className="text-right">Zysk / Strata</th>
                 </tr>
               </thead>
               <tbody>
-                {portfolioDetails.map(item => (
-                  <tr key={item.id} className="stock-row">
-                    <td>
-                      <div className="font-bold">{item.name}</div>
-                      <div className="text-muted text-sm">{item.id}</div>
-                    </td>
-                    <td>{item.quantity}</td>
-                    <td>{item.avgPrice.toFixed(2)} PLN</td>
-                    <td>{item.currentPrice.toFixed(2)} PLN</td>
-                    <td className="font-bold">{item.totalValue.toFixed(2)} PLN</td>
-                    <td>
-                      <div className={`flex items-center gap-1 ${item.profit >= 0 ? 'text-success' : 'text-danger'}`}>
-                        {item.profit >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                        {Math.abs(item.profit).toFixed(2)} ({Math.abs(item.profitPercent).toFixed(2)}%)
-                      </div>
+                {portfolioItems.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="text-center py-8 text-muted">
+                      Twój portfel jest pusty. Przejdź do zakładki Rynek, aby dokonać pierwszej inwestycji.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  portfolioItems.map(item => (
+                    <tr key={item.id} className="stock-row">
+                      <td className="font-bold">{item.id}</td>
+                      <td><span className="badge" style={{ background: 'rgba(255,255,255,0.1)' }}>{item.category}</span></td>
+                      <td>{item.quantity} szt.</td>
+                      <td>{item.averagePrice.toFixed(2)}</td>
+                      <td className="font-bold">{item.price.toFixed(2)}</td>
+                      <td className={`text-right font-bold ${item.profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                        {item.profit > 0 ? '+' : ''}{item.profit.toFixed(2)} PLN <br/>
+                        <span className="text-sm">({item.profitPercent > 0 ? '+' : ''}{item.profitPercent.toFixed(2)}%)</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+
+        <div className="glass-panel" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+          <h3 className="mb-6 text-gradient flex items-center gap-2"><RadioReceiver size={20} /> Oś Czasu (News)</h3>
+          {newsHistory.length === 0 ? (
+            <div className="text-muted text-center py-4">Brak wiadomości z rynku.</div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {newsHistory.map(news => (
+                <div key={news.id} className="p-3 rounded bg-black/20 border-l-4" style={{ borderColor: news.isPositive ? 'var(--success)' : 'var(--danger)' }}>
+                  <div className="text-xs text-muted mb-1">{new Date(news.date).toLocaleTimeString()} • {news.stockId}</div>
+                  <div className="text-sm">{news.message}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
