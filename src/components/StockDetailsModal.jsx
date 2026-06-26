@@ -70,7 +70,8 @@ export function StockDetailsModal({ stock, onClose }) {
             {['3M', '6M', '1R', '2L', '3L', 'MAX'].map(range => (
               <button 
                 key={range}
-                className={`text-sm px-3 py-1 rounded transition-colors ${timeRange === range ? 'bg-primary text-white' : 'bg-[rgba(255,255,255,0.05)] text-muted hover:bg-[rgba(255,255,255,0.1)]'}`}
+                className={`btn ${timeRange === range ? 'btn-primary' : 'btn-outline'}`}
+                style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
                 onClick={() => setTimeRange(range)}
               >
                 {range}
