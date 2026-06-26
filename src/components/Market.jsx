@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowUpRight, ArrowDownRight, ShoppingCart } from 'lucide-react';
-import { TradeModal } from './TradeModal';
+import { StockDetailsModal } from './StockDetailsModal';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 
 export function Market({ marketData }) {
@@ -51,7 +51,7 @@ export function Market({ marketData }) {
                 const isUp = stock.trend === 'up';
                 
                 return (
-                  <tr key={stock.id} className="stock-row">
+                  <tr key={stock.id} className="stock-row" onClick={() => setSelectedStock(stock)} style={{ cursor: 'pointer' }}>
                     <td>
                       <div className="font-bold">{stock.name}</div>
                       <div className="text-muted text-sm">{stock.id}</div>
@@ -86,7 +86,7 @@ export function Market({ marketData }) {
                     <td className="text-right">
                       <button 
                         className="btn btn-primary"
-                        onClick={() => setSelectedStock(stock)}
+                        onClick={(e) => { e.stopPropagation(); setSelectedStock(stock); }}
                       >
                         <ShoppingCart size={16} /> Handluj
                       </button>
@@ -100,7 +100,7 @@ export function Market({ marketData }) {
       </div>
 
       {selectedStock && (
-        <TradeModal 
+        <StockDetailsModal 
           stock={selectedStock} 
           onClose={() => setSelectedStock(null)} 
         />
