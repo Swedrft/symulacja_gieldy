@@ -53,6 +53,20 @@ class MarketService {
       { id: 'SPY', name: 'S&P 500 ETF', category: 'ETF', price: 2050.00, change: 0, trend: 'up', history: [] },
       { id: 'QQQ', name: 'Nasdaq 100 ETF', category: 'ETF', price: 1800.00, change: 0, trend: 'up', history: [] },
       { id: 'VTI', name: 'Vanguard Total Stock', category: 'ETF', price: 1100.00, change: 0, trend: 'up', history: [] },
+
+      // Lotnictwo
+      { id: 'BA', name: 'Boeing Co.', category: 'Lotnictwo', price: 210.50, change: 0, trend: 'up', history: [] },
+      { id: 'AIR', name: 'Airbus SE', category: 'Lotnictwo', price: 165.20, change: 0, trend: 'up', history: [] },
+      { id: 'DAL', name: 'Delta Air Lines', category: 'Lotnictwo', price: 50.80, change: 0, trend: 'up', history: [] },
+      { id: 'RYA', name: 'Ryanair Holdings', category: 'Lotnictwo', price: 21.40, change: 0, trend: 'up', history: [] },
+      { id: 'LHA', name: 'Lufthansa', category: 'Lotnictwo', price: 7.50, change: 0, trend: 'down', history: [] },
+
+      // Motoryzacja
+      { id: 'TM', name: 'Toyota Motor Corp.', category: 'Motoryzacja', price: 240.10, change: 0, trend: 'up', history: [] },
+      { id: 'VOW3', name: 'Volkswagen AG', category: 'Motoryzacja', price: 115.30, change: 0, trend: 'down', history: [] },
+      { id: 'F', name: 'Ford Motor Co.', category: 'Motoryzacja', price: 12.40, change: 0, trend: 'up', history: [] },
+      { id: 'BMW', name: 'BMW AG', category: 'Motoryzacja', price: 105.60, change: 0, trend: 'up', history: [] },
+      { id: 'RACE', name: 'Ferrari N.V.', category: 'Motoryzacja', price: 395.20, change: 0, trend: 'up', history: [] },
     ];
     
     this.newsHistory = [];
@@ -193,12 +207,34 @@ class MarketService {
         const isPositive = Math.random() > 0.5;
         const effect = (Math.random() * 0.04) + 0.02;
 
+        const positiveTemplates = [
+          `Dobre wieści dla ${randomStock.name}! Raport finansowy przerósł oczekiwania.`,
+          `Firma ${randomStock.name} ogłasza przełomową technologię. Akcje szybują w górę!`,
+          `Nowy duży kontrakt dla ${randomStock.name} podpisany. Inwestorzy świętują.`,
+          `Zarząd ${randomStock.name} podnosi prognozy zysków na ten rok.`,
+          `Fuzja na horyzoncie? Silne wzrosty na akcjach ${randomStock.name}.`,
+          `Świetne wyniki sprzedaży ${randomStock.name} w ostatnim kwartale.`,
+          `Analitycy podnoszą rekomendację dla ${randomStock.name} do 'Zdecydowanie Kupuj'.`
+        ];
+
+        const negativeTemplates = [
+          `Problemy w ${randomStock.name}. Inwestorzy reagują nagłą wyprzedażą.`,
+          `Afera w zarządzie ${randomStock.name}. Akcje tracą na wartości.`,
+          `Słabsze niż oczekiwano wyniki finansowe ciągną ${randomStock.name} w dół.`,
+          `Problemy z łańcuchem dostaw uderzają w zyski ${randomStock.name}.`,
+          `Nowe regulacje mogą zaszkodzić modelowi biznesowemu ${randomStock.name}.`,
+          `Opóźnienia w premierze kluczowego produktu ${randomStock.name}.`,
+          `Agencja ratingowa obniża ocenę dla ${randomStock.name}.`
+        ];
+
+        const message = isPositive 
+          ? positiveTemplates[Math.floor(Math.random() * positiveTemplates.length)]
+          : negativeTemplates[Math.floor(Math.random() * negativeTemplates.length)];
+
         currentNews = {
           id: Date.now().toString(),
           stockId: randomStock.id,
-          message: isPositive 
-            ? `Dobre wieści dla ${randomStock.name}! Raport finansowy przerósł oczekiwania.`
-            : `Problemy w ${randomStock.name}. Inwestorzy reagują nagłą wyprzedażą.`,
+          message: message,
           isPositive,
           date: new Date().toISOString()
         };

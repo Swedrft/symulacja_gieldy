@@ -147,7 +147,9 @@ export function Dashboard({ brokerState, marketData }) {
                   <th>Kategoria</th>
                   <th>Ilość</th>
                   <th>Śr. Cena Kupna</th>
+                  <th>Wartość Zakupu</th>
                   <th>Obecna Cena</th>
+                  <th>Obecna Wartość</th>
                   <th className="text-right">Zysk / Strata</th>
                 </tr>
               </thead>
@@ -165,7 +167,9 @@ export function Dashboard({ brokerState, marketData }) {
                       <td><span className="badge" style={{ background: 'rgba(255,255,255,0.1)' }}>{item.category}</span></td>
                       <td>{item.quantity} szt.</td>
                       <td>{item.averagePrice.toFixed(2)}</td>
+                      <td>{(item.quantity * item.averagePrice).toFixed(2)} PLN</td>
                       <td className="font-bold">{item.price.toFixed(2)}</td>
+                      <td className="font-bold">{item.currentValue.toFixed(2)} PLN</td>
                       <td className={`text-right font-bold ${item.profit >= 0 ? 'text-success' : 'text-danger'}`}>
                         {item.profit > 0 ? '+' : ''}{item.profit.toFixed(2)} PLN <br/>
                         <span className="text-sm">({item.profitPercent > 0 ? '+' : ''}{item.profitPercent.toFixed(2)}%)</span>
