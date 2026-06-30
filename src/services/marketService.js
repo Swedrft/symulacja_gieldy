@@ -67,6 +67,20 @@ class MarketService {
       { id: 'F', name: 'Ford Motor Co.', category: 'Motoryzacja', price: 12.40, change: 0, trend: 'up', history: [] },
       { id: 'BMW', name: 'BMW AG', category: 'Motoryzacja', price: 105.60, change: 0, trend: 'up', history: [] },
       { id: 'RACE', name: 'Ferrari N.V.', category: 'Motoryzacja', price: 395.20, change: 0, trend: 'up', history: [] },
+      { id: 'MBG', name: 'Mercedes-Benz Group', category: 'Motoryzacja', price: 72.80, change: 0, trend: 'up', history: [] },
+      { id: 'STLA', name: 'Stellantis N.V.', category: 'Motoryzacja', price: 21.30, change: 0, trend: 'up', history: [] },
+      { id: 'HMC', name: 'Honda Motor Co.', category: 'Motoryzacja', price: 35.60, change: 0, trend: 'down', history: [] },
+      { id: 'HYMTF', name: 'Hyundai Motor Co.', category: 'Motoryzacja', price: 42.10, change: 0, trend: 'up', history: [] },
+      { id: 'RNO', name: 'Renault SA', category: 'Motoryzacja', price: 48.90, change: 0, trend: 'up', history: [] },
+      { id: 'AML', name: 'Aston Martin', category: 'Motoryzacja', price: 2.10, change: 0, trend: 'down', history: [] },
+
+      // Global (Blue Chips)
+      { id: 'NKE', name: 'Nike, Inc.', category: 'US Inne', price: 92.50, change: 0, trend: 'up', history: [] },
+      { id: 'SONY', name: 'Sony Group Corp.', category: 'US Inne', price: 88.40, change: 0, trend: 'up', history: [] },
+      { id: 'SMSN', name: 'Samsung Electronics', category: 'US Inne', price: 65.20, change: 0, trend: 'up', history: [] },
+      { id: 'PFE', name: 'Pfizer Inc.', category: 'US Inne', price: 28.70, change: 0, trend: 'down', history: [] },
+      { id: 'MRNA', name: 'Moderna, Inc.', category: 'US Inne', price: 110.20, change: 0, trend: 'up', history: [] },
+      { id: 'PG', name: 'Procter & Gamble', category: 'US Inne', price: 165.80, change: 0, trend: 'up', history: [] },
     ];
     
     this.newsHistory = [];

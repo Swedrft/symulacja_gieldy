@@ -10,9 +10,9 @@ export function StockDetailsModal({ stock, onClose }) {
   const [timeRange, setTimeRange] = useState('6M');
   const [tradeMode, setTradeMode] = useState('market'); // market | limit
   const [actionType, setActionType] = useState('long'); // long | short
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState('1');
   const [leverage, setLeverage] = useState(1);
-  const [limitPrice, setLimitPrice] = useState(stock.price);
+  const [limitPrice, setLimitPrice] = useState(stock.price.toString());
   const [showSMA, setShowSMA] = useState(false);
   
   const [error, setError] = useState('');
@@ -69,11 +69,13 @@ export function StockDetailsModal({ stock, onClose }) {
     setSuccess('');
     
     try {
-      const targetPrice = tradeMode === 'market' ? currentPrice : limitPrice;
+      const parsedQty = Number(quantity) || 1;
+      const parsedLimitPrice = Number(limitPrice) || 0;
+      const targetPrice = tradeMode === 'market' ? currentPrice : parsedLimitPrice;
       const res = brokerService.openPosition(
         stock.id, 
         actionType, 
-        quantity, 
+        parsedQty, 
         leverage, 
         tradeMode === 'limit', 
         tradeMode === 'limit' ? targetPrice : null
@@ -85,10 +87,12 @@ export function StockDetailsModal({ stock, onClose }) {
       }
 
       if (tradeMode === 'market') {
-        const totalVal = currentPrice * quantity;
+        const parsedQty = Number(quantity) || 1;
+        const totalVal = currentPrice * parsedQty;
         setSuccess(`Otwarto pozycję ${actionType.toUpperCase()} x${leverage}. Wartość: ${totalVal.toFixed(2)} PLN`);
       } else {
-        setSuccess(`Złożono zlecenie oczekujące ${actionType.toUpperCase()} x${leverage} po cenie ${limitPrice.toFixed(2)} PLN.`);
+        const parsedLimitPrice = Number(limitPrice) || 0;
+        setSuccess(`Złożono zlecenie oczekujące ${actionType.toUpperCase()} x${leverage} po cenie ${parsedLimitPrice.toFixed(2)} PLN.`);
       }
     } catch (err) {
       setError(err.message || 'Wystąpił nieoczekiwany błąd');
@@ -228,7 +232,7 @@ export function StockDetailsModal({ stock, onClose }) {
               className="input-field text-xl font-bold" 
               min="1" 
               value={quantity} 
-              onChange={e => setQuantity(parseInt(e.target.value) || 1)}
+              onChange={e => setQuantity(e.target.value)}
               required 
             />
           </div>
@@ -257,7 +261,7 @@ export function StockDetailsModal({ stock, onClose }) {
                 step="0.01"
                 className="input-field text-xl font-bold text-accent" 
                 value={limitPrice} 
-                onChange={e => setLimitPrice(parseFloat(e.target.value) || 0)}
+                onChange={e => setLimitPrice(e.target.value)}
                 required 
               />
             </div>
@@ -266,19 +270,19 @@ export function StockDetailsModal({ stock, onClose }) {
           <div className="bg-[rgba(255,255,255,0.03)] p-3 rounded-lg mb-2">
             <div className="flex justify-between text-sm mb-1">
               <span className="text-muted">Cena za akcję:</span>
-              <span>{tradeMode === 'market' ? currentPrice.toFixed(2) : limitPrice.toFixed(2)} PLN</span>
+              <span>{tradeMode === 'market' ? currentPrice.toFixed(2) : (Number(limitPrice) || 0).toFixed(2)} PLN</span>
             </div>
             <div className="flex justify-between text-sm mb-1">
               <span className="text-muted">Prowizja (0.39% / min 5):</span>
-              <span className="text-danger">~{Math.max(5, (quantity * (tradeMode === 'market' ? currentPrice : limitPrice)) * 0.0039).toFixed(2)} PLN</span>
+              <span className="text-danger">~{Math.max(5, ((Number(quantity) || 1) * (tradeMode === 'market' ? currentPrice : (Number(limitPrice) || 0))) * 0.0039).toFixed(2)} PLN</span>
             </div>
             <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t border-[rgba(255,255,255,0.1)]">
               <span>Wymagany Depozyt (Margin):</span>
-              <span>{((quantity * (tradeMode === 'market' ? currentPrice : limitPrice)) / leverage).toFixed(2)} PLN</span>
+              <span>{(((Number(quantity) || 1) * (tradeMode === 'market' ? currentPrice : (Number(limitPrice) || 0))) / leverage).toFixed(2)} PLN</span>
             </div>
             <div className="flex justify-between text-sm mt-1">
               <span className="text-muted">Całkowita wartość pozycji:</span>
-              <span>{(quantity * (tradeMode === 'market' ? currentPrice : limitPrice)).toFixed(2)} PLN</span>
+              <span>{((Number(quantity) || 1) * (tradeMode === 'market' ? currentPrice : (Number(limitPrice) || 0))).toFixed(2)} PLN</span>
             </div>
           </div>
 

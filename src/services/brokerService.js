@@ -6,11 +6,20 @@ class BrokerService {
     this.initialBalance = 10000;
     this.state = this.loadState();
     this.listeners = [];
+    this.tickCounter = 0;
 
     marketService.subscribe((stocks, currentNews, newsHistory, dividendEvent) => {
+      this.tickCounter++;
       this.checkLimitOrders(stocks);
       this.checkPriceAlerts(stocks);
       this.checkMarginCalls(stocks);
+      this.processLoans();
+      
+      // Co 10 ticków symulacji (ok. 30s) wykonaj zrzut historii konta
+      if (this.tickCounter % 10 === 0) {
+        this.snapshotAccountHistory(stocks);
+      }
+
       if (dividendEvent) {
         this.processDividend(dividendEvent);
       }
@@ -51,6 +60,8 @@ class BrokerService {
         const parsed = JSON.parse(saved);
         if (!parsed.limitOrders) parsed.limitOrders = [];
         if (!parsed.priceAlerts) parsed.priceAlerts = [];
+        if (!parsed.accountHistory) parsed.accountHistory = [];
+        if (!parsed.loan) parsed.loan = { amount: 0, interestRate: 0.0005 }; // 0.05% na tick
         if (!parsed.positions) {
           parsed.positions = [];
           if (parsed.portfolio) {
@@ -80,8 +91,91 @@ class BrokerService {
       positions: [],
       transactions: [],
       limitOrders: [],
-      priceAlerts: []
+      priceAlerts: [],
+      accountHistory: [{ date: new Date().toISOString(), value: this.initialBalance }],
+      loan: { amount: 0, interestRate: 0.0005 }
     };
+  }
+
+  // Oblicza aktualną, całkowitą wartość konta z otwartymi pozycjami
+  calculateTotalValue(stocks) {
+    let totalStockValue = 0;
+    this.state.positions.forEach(pos => {
+      const stock = stocks.find(s => s.id === pos.stockId);
+      if (stock) {
+        let profit = 0;
+        if (pos.type === 'long') {
+          profit = (stock.price - pos.entryPrice) * pos.quantity;
+        } else {
+          profit = (pos.entryPrice - stock.price) * pos.quantity;
+        }
+        totalStockValue += (pos.margin + profit);
+      }
+    });
+    return this.state.balance + totalStockValue;
+  }
+
+  snapshotAccountHistory(stocks) {
+    const value = this.calculateTotalValue(stocks);
+    this.state.accountHistory.push({
+      date: new Date().toISOString(),
+      value: Number(value.toFixed(2))
+    });
+    
+    // Zatrzymujemy max 100 zrzutów, aby wykres nie był zbyt gęsty
+    if (this.state.accountHistory.length > 100) {
+      this.state.accountHistory.shift();
+    }
+    this.saveState();
+  }
+
+  processLoans() {
+    if (this.state.loan && this.state.loan.amount > 0) {
+      const interest = this.state.loan.amount * this.state.loan.interestRate;
+      this.state.balance -= interest;
+      // Nie zapisujemy tego jako osobnej transakcji by nie spamować, zrobimy to cicho
+      // Jednak można też dodawać powiadomienia, jeśli saldo spadnie poniżej 0
+    }
+  }
+
+  takeLoan(amount) {
+    if (amount <= 0) return { success: false };
+    this.state.balance += amount;
+    this.state.loan.amount += amount;
+    this.state.transactions.unshift({
+      id: Date.now().toString() + 'loan',
+      type: 'LOAN_TAKEN',
+      stockId: 'BANK',
+      quantity: 0,
+      price: 0,
+      commission: 0,
+      total: amount,
+      date: new Date().toISOString()
+    });
+    this.saveState();
+    return { success: true };
+  }
+
+  repayLoan(amount) {
+    if (amount <= 0 || this.state.loan.amount === 0) return { success: false };
+    const repayment = Math.min(amount, this.state.loan.amount);
+    if (this.state.balance < repayment) {
+      return { success: false, error: 'Brak środków na spłatę kredytu' };
+    }
+    this.state.balance -= repayment;
+    this.state.loan.amount -= repayment;
+    this.state.transactions.unshift({
+      id: Date.now().toString() + 'repay',
+      type: 'LOAN_REPAID',
+      stockId: 'BANK',
+      quantity: 0,
+      price: 0,
+      commission: 0,
+      total: -repayment,
+      date: new Date().toISOString()
+    });
+    this.saveState();
+    return { success: true };
   }
 
   saveState() {
@@ -382,7 +476,9 @@ class BrokerService {
       positions: [],
       transactions: [],
       limitOrders: [],
-      priceAlerts: []
+      priceAlerts: [],
+      accountHistory: [{ date: new Date().toISOString(), value: this.initialBalance }],
+      loan: { amount: 0, interestRate: 0.0005 }
     };
     this.saveState();
   }

@@ -56,10 +56,10 @@ export function Dashboard({ brokerState, marketData }) {
     pieData.push({ name: 'Gotówka', value: brokerState.balance });
   }
 
-  const accountHistoryData = [
-    { name: 'Start', value: initialValue },
-    { name: 'Teraz', value: totalValue }
-  ];
+  const accountHistoryData = (brokerState.accountHistory || []).map(entry => ({
+    name: new Date(entry.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    value: entry.value
+  }));
 
   const newsHistory = marketService.getNewsHistory();
 
