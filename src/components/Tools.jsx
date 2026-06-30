@@ -76,7 +76,7 @@ export function Tools({ brokerState, marketData }) {
     <div className="animate-fade-in grid gap-8 md:grid-cols-2">
       
       {/* Alerty Cenowe */}
-      <div className="glass-panel flex flex-col">
+      <div className="glass-panel flex flex-col overflow-hidden">
         <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-gradient">
           <Bell size={24} /> Alerty Cenowe
         </h2>
@@ -126,7 +126,7 @@ export function Tools({ brokerState, marketData }) {
           </button>
         </form>
 
-        <div className="flex-1 overflow-y-auto" style={{ maxHeight: '200px' }}>
+        <div className="flex-1 overflow-y-auto min-h-0">
           <h3 className="font-bold mb-3 border-b border-[rgba(255,255,255,0.1)] pb-2">Aktywne Alerty</h3>
           {brokerState.priceAlerts.length === 0 ? (
             <div className="text-muted text-center py-4">Brak aktywnych alertów.</div>
@@ -269,13 +269,13 @@ export function Tools({ brokerState, marketData }) {
       </div>
 
       {/* Kalendarz Dywidend */}
-      <div className="glass-panel flex flex-col" style={{ maxHeight: '400px' }}>
+      <div className="glass-panel flex flex-col overflow-hidden" style={{ minHeight: '400px' }}>
         <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-gradient">
           <Calendar size={24} /> Kalendarz Dywidend
         </h2>
         <p className="text-muted mb-4 text-sm">Lista spółek wypłacających dywidendy. Posiadaj akcje (Long), aby otrzymać wypłatę.</p>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0">
           <table className="stock-list">
             <thead>
               <tr>

@@ -62,6 +62,7 @@ export function Dashboard({ brokerState, marketData }) {
   }));
 
   const newsHistory = marketService.getNewsHistory();
+  const hasLoan = brokerState.loan && brokerState.loan.amount > 0;
 
   return (
     <div className="animate-fade-in">
@@ -70,7 +71,7 @@ export function Dashboard({ brokerState, marketData }) {
         <p className="text-muted">Centrum dowodzenia i analityki Twojego portfela</p>
       </div>
 
-      <div className="dashboard-grid-3">
+      <div className={hasLoan ? "dashboard-grid-4" : "dashboard-grid-3"}>
         <div className="glass-panel">
           <div className="text-sm text-muted mb-2 flex items-center gap-2"><DollarSign size={16}/> Wartość Konta</div>
           <div className="text-3xl font-bold mb-2">{totalValue.toFixed(2)} PLN</div>
@@ -91,6 +92,14 @@ export function Dashboard({ brokerState, marketData }) {
           <div className="text-3xl font-bold mb-2 text-success">{brokerState.balance.toFixed(2)} PLN</div>
           <div className="text-sm text-muted">Gotowe do zajęcia nowych pozycji</div>
         </div>
+
+        {hasLoan && (
+          <div className="glass-panel border-danger/30">
+            <div className="text-sm text-muted mb-2 flex items-center gap-2"><DollarSign size={16}/> Zadłużenie (Kredyt)</div>
+            <div className="text-3xl font-bold mb-2 text-danger">-{brokerState.loan.amount.toFixed(2)} PLN</div>
+            <div className="text-sm text-muted">Zmniejsza wolne środki (odsetki)</div>
+          </div>
+        )}
       </div>
 
       <div className="dashboard-grid-2">

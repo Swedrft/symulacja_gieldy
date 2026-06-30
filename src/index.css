@@ -279,14 +279,17 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
 
+.dashboard-grid-4 { display: grid; gap: 1.5rem; margin-bottom: 2rem; grid-template-columns: repeat(4, 1fr); }
 .dashboard-grid-3 { display: grid; gap: 1.5rem; margin-bottom: 2rem; grid-template-columns: repeat(3, 1fr); }
 .dashboard-grid-2 { display: grid; gap: 1.5rem; margin-bottom: 2rem; grid-template-columns: 2fr 1fr; }
 
 @media (max-width: 1024px) {
+  .dashboard-grid-4 { grid-template-columns: repeat(2, 1fr); }
   .dashboard-grid-3 { grid-template-columns: repeat(2, 1fr); }
   .dashboard-grid-2 { grid-template-columns: 1fr; }
 }
 @media (max-width: 768px) {
+  .dashboard-grid-4 { grid-template-columns: 1fr; }
   .dashboard-grid-3 { grid-template-columns: 1fr; }
 }
 
