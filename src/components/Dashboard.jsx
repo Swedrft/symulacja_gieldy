@@ -5,31 +5,42 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, Briefcase, Activity, RadioReceiver } from 'lucide-react';
 import { marketService } from '../services/marketService';
+import { brokerService } from '../services/brokerService';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#64748b'];
 
 export function Dashboard({ brokerState, marketData }) {
-  // Obliczanie wartości portfela z uwzględnieniem kategorii
   let totalStockValue = 0;
   const categoryValues = {};
   
-  const portfolioItems = Object.entries(brokerState.portfolio).map(([stockId, data]) => {
-    const stock = marketData.find(s => s.id === stockId);
+  const portfolioItems = (brokerState.positions || []).map((pos) => {
+    const stock = marketData.find(s => s.id === pos.stockId);
     if (!stock) return null;
     
     const currentPrice = stock.price;
-    const value = data.quantity * currentPrice;
-    const profit = value - (data.quantity * data.averagePrice);
-    const profitPercent = (profit / (data.quantity * data.averagePrice)) * 100;
+    const value = pos.quantity * currentPrice;
     
-    totalStockValue += value;
-    categoryValues[stock.category] = (categoryValues[stock.category] || 0) + value;
+    let profit = 0;
+    if (pos.type === 'long') {
+      profit = (currentPrice - pos.entryPrice) * pos.quantity;
+    } else {
+      profit = (pos.entryPrice - currentPrice) * pos.quantity;
+    }
+    
+    const profitPercent = (profit / pos.margin) * 100;
+    
+    // Value of the position is the margin locked + current profit
+    const positionCurrentValue = pos.margin + profit;
+    totalStockValue += positionCurrentValue;
+    
+    categoryValues[stock.category] = (categoryValues[stock.category] || 0) + positionCurrentValue;
 
     return {
-      ...stock,
-      quantity: data.quantity,
-      averagePrice: data.averagePrice,
-      currentValue: value,
+      ...pos, // id, type, quantity, entryPrice, leverage, margin
+      stockName: stock.name,
+      category: stock.category,
+      currentPrice,
+      currentValue: positionCurrentValue,
       profit,
       profitPercent
     };
@@ -40,14 +51,11 @@ export function Dashboard({ brokerState, marketData }) {
   const totalProfit = totalValue - initialValue;
   const totalProfitPercent = (totalProfit / initialValue) * 100;
 
-  // Przygotowanie danych do Pie Chart (Dywersyfikacja)
-  const pieData = Object.entries(categoryValues).map(([name, value]) => ({ name, value }));
-  // Dodanie gotówki do wykresu kołowego
+  const pieData = Object.entries(categoryValues).map(([name, value]) => ({ name, value: Math.max(0, value) }));
   if (brokerState.balance > 0) {
     pieData.push({ name: 'Gotówka', value: brokerState.balance });
   }
 
-  // Przygotowanie dummy-historii do głównego wykresu konta
   const accountHistoryData = [
     { name: 'Start', value: initialValue },
     { name: 'Teraz', value: totalValue }
@@ -81,7 +89,7 @@ export function Dashboard({ brokerState, marketData }) {
         <div className="glass-panel">
           <div className="text-sm text-muted mb-2 flex items-center gap-2"><Activity size={16}/> Wolne Środki</div>
           <div className="text-3xl font-bold mb-2 text-success">{brokerState.balance.toFixed(2)} PLN</div>
-          <div className="text-sm text-muted">Gotowe do zainwestowania</div>
+          <div className="text-sm text-muted">Gotowe do zajęcia nowych pozycji</div>
         </div>
       </div>
 
@@ -138,41 +146,49 @@ export function Dashboard({ brokerState, marketData }) {
 
       <div className="dashboard-grid-2">
         <div className="glass-panel">
-          <h3 className="mb-6 text-gradient">Twój Portfel</h3>
+          <h3 className="mb-6 text-gradient">Twoje Otwarte Pozycje</h3>
           <div style={{ overflowX: 'auto' }}>
             <table className="stock-list">
               <thead>
                 <tr>
                   <th>Walor</th>
-                  <th>Kategoria</th>
+                  <th>Typ</th>
                   <th>Ilość</th>
-                  <th>Śr. Cena Kupna</th>
-                  <th>Wartość Zakupu</th>
+                  <th>Cena Wejścia</th>
                   <th>Obecna Cena</th>
-                  <th>Obecna Wartość</th>
+                  <th>Depozyt (Margin)</th>
                   <th className="text-right">Zysk / Strata</th>
+                  <th>Akcja</th>
                 </tr>
               </thead>
               <tbody>
                 {portfolioItems.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="text-center py-8 text-muted">
-                      Twój portfel jest pusty. Przejdź do zakładki Rynek, aby dokonać pierwszej inwestycji.
+                    <td colSpan="8" className="text-center py-8 text-muted">
+                      Nie masz otwartych pozycji. Przejdź do zakładki Rynek.
                     </td>
                   </tr>
                 ) : (
                   portfolioItems.map(item => (
                     <tr key={item.id} className="stock-row">
-                      <td className="font-bold">{item.id}</td>
-                      <td><span className="badge" style={{ background: 'rgba(255,255,255,0.1)' }}>{item.category}</span></td>
-                      <td>{item.quantity} szt.</td>
-                      <td>{item.averagePrice.toFixed(2)}</td>
-                      <td>{(item.quantity * item.averagePrice).toFixed(2)} PLN</td>
-                      <td className="font-bold">{item.price.toFixed(2)}</td>
-                      <td className="font-bold">{item.currentValue.toFixed(2)} PLN</td>
+                      <td className="font-bold">{item.stockId}</td>
+                      <td>
+                        <span className="badge" style={{ background: item.type === 'long' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: item.type === 'long' ? 'var(--success)' : 'var(--danger)' }}>
+                          {item.type.toUpperCase()} x{item.leverage}
+                        </span>
+                      </td>
+                      <td>{item.quantity.toFixed(2)}</td>
+                      <td>{item.entryPrice.toFixed(2)}</td>
+                      <td className="font-bold">{item.currentPrice.toFixed(2)}</td>
+                      <td>{item.margin.toFixed(2)} PLN</td>
                       <td className={`text-right font-bold ${item.profit >= 0 ? 'text-success' : 'text-danger'}`}>
                         {item.profit > 0 ? '+' : ''}{item.profit.toFixed(2)} PLN <br/>
                         <span className="text-sm">({item.profitPercent > 0 ? '+' : ''}{item.profitPercent.toFixed(2)}%)</span>
+                      </td>
+                      <td>
+                        <button className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }} onClick={() => brokerService.closePosition(item.id)}>
+                          Zamknij
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -190,7 +206,7 @@ export function Dashboard({ brokerState, marketData }) {
             <div className="flex flex-col gap-4">
               {newsHistory.map(news => (
                 <div key={news.id} className="p-3 rounded bg-black/20 border-l-4" style={{ borderColor: news.isPositive ? 'var(--success)' : 'var(--danger)' }}>
-                  <div className="text-xs text-muted mb-1">{new Date(news.date).toLocaleTimeString()} • {news.stockId}</div>
+                  <div className="text-xs text-muted mb-1">{new Date(news.date).toLocaleTimeString()} • {news.stockId || 'Global'}</div>
                   <div className="text-sm">{news.message}</div>
                 </div>
               ))}

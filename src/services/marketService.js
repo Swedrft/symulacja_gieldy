@@ -71,6 +71,9 @@ class MarketService {
     
     this.newsHistory = [];
     this.listeners = [];
+    
+    this.currentMacroEvent = null;
+    this.macroEventDuration = 0;
 
     this.preGenerateHistoryAndFinancials();
     this.startSimulation();
@@ -189,18 +192,50 @@ class MarketService {
     };
   }
 
-  notify(currentNews = null, dividendEvent = null) {
+  notify(currentNews = null, dividendEvent = null, macroNews = null) {
+    if (macroNews) {
+      this.newsHistory.unshift(macroNews);
+      if (this.newsHistory.length > 50) this.newsHistory.pop();
+    }
     if (currentNews) {
       this.newsHistory.unshift(currentNews);
       if (this.newsHistory.length > 50) this.newsHistory.pop();
     }
-    this.listeners.forEach(listener => listener([...this.stocks], currentNews, this.newsHistory, dividendEvent));
+    this.listeners.forEach(listener => listener([...this.stocks], currentNews || macroNews, this.newsHistory, dividendEvent));
   }
 
   startSimulation() {
     setInterval(() => {
       let currentNews = null;
       let dividendEvent = null;
+      let macroNews = null;
+
+      // Obsługa makroekonomii
+      if (this.macroEventDuration <= 0) {
+        if (Math.random() < 0.02) { // Szansa na wydarzenie makro
+          const events = [
+            { message: "Zaskakująca decyzja FED! Obniżka stóp procentowych. Sektor Tech zyskuje.", effect: 0.05, category: "US Tech", isPositive: true },
+            { message: "Kryzys w branży motoryzacyjnej! Problemy z dostawami półprzewodników.", effect: -0.06, category: "Motoryzacja", isPositive: false },
+            { message: "Hossa na rynku Krypto! Rekordowe napływy kapitału do funduszy.", effect: 0.08, category: "Krypto", isPositive: true },
+            { message: "Niepokoje geopolityczne! Złoto i surowce mocno w górę.", effect: 0.05, category: "Surowce", isPositive: true },
+            { message: "Kryzys linii lotniczych! Masowe odwołania lotów uderzają w akcje.", effect: -0.05, category: "Lotnictwo", isPositive: false }
+          ];
+          this.currentMacroEvent = events[Math.floor(Math.random() * events.length)];
+          this.macroEventDuration = 10; // Trwa przez 10 ticków symulacji
+          
+          macroNews = {
+            id: Date.now().toString() + 'macro',
+            stockId: 'GLOBAL',
+            message: `Wydarzenie Makro: ${this.currentMacroEvent.message}`,
+            isPositive: this.currentMacroEvent.isPositive,
+            date: new Date().toISOString()
+          };
+        } else {
+          this.currentMacroEvent = null;
+        }
+      } else {
+        this.macroEventDuration--;
+      }
 
       if (Math.random() < 0.05) {
         const randomStock = this.stocks[Math.floor(Math.random() * this.stocks.length)];
@@ -265,7 +300,13 @@ class MarketService {
 
       this.stocks = this.stocks.map(stock => {
         const volatility = stock.category === 'Krypto' ? 0.008 : (stock.category === 'ETF' ? 0.002 : 0.005);
-        const changePercent = (Math.random() * volatility * 2) - volatility;
+        let changePercent = (Math.random() * volatility * 2) - volatility;
+        
+        // Aplikowanie efektu makro
+        if (this.currentMacroEvent && stock.category === this.currentMacroEvent.category) {
+          const macroInfluence = this.currentMacroEvent.effect / 10; // Efekt rozłożony na 10 ticków
+          changePercent += macroInfluence;
+        }
         
         const oldPrice = stock.price;
         const newPrice = oldPrice * (1 + changePercent);
@@ -281,7 +322,7 @@ class MarketService {
         };
       });
 
-      this.notify(currentNews, dividendEvent);
+      this.notify(currentNews, dividendEvent, macroNews);
     }, 3000);
   }
 }

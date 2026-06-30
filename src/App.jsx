@@ -3,6 +3,7 @@ import { LineChart, Wallet, PieChart, Activity, RefreshCw, ScrollText, Bell } fr
 import { Dashboard } from './components/Dashboard'
 import { Market } from './components/Market'
 import { History } from './components/History'
+import { Tools } from './components/Tools'
 import { brokerService } from './services/brokerService'
 import { marketService } from './services/marketService'
 import './index.css'
@@ -61,6 +62,12 @@ function App() {
           >
             <ScrollText size={18} /> Historia
           </button>
+          <button 
+            className={`btn btn-outline ${currentView === 'tools' ? 'active' : ''}`}
+            onClick={() => setCurrentView('tools')}
+          >
+            <Bell size={18} /> Narzędzia
+          </button>
         </div>
 
         <div className="flex items-center gap-4">
@@ -94,6 +101,7 @@ function App() {
         {currentView === 'dashboard' && <Dashboard brokerState={brokerState} marketData={marketData} />}
         {currentView === 'market' && <Market marketData={marketData} />}
         {currentView === 'history' && <History brokerState={brokerState} />}
+        {currentView === 'tools' && <Tools brokerState={brokerState} marketData={marketData} />}
       </main>
     </div>
   )

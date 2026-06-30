@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import ReactDOM from 'react-dom';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Legend, Cell, PieChart, Pie } from 'recharts';
-import { X, TrendingUp, TrendingDown, DollarSign, Activity, Users, Info, BarChart2, Briefcase } from 'lucide-react';
+import { AreaChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Legend, Cell, PieChart, Pie, ComposedChart } from 'recharts';
+import { X, TrendingUp, TrendingDown, Users, Info, BarChart2, Briefcase } from 'lucide-react';
 import { brokerService } from '../services/brokerService';
 import { marketService } from '../services/marketService';
 
@@ -9,9 +9,11 @@ export function StockDetailsModal({ stock, onClose }) {
   const [activeTab, setActiveTab] = useState('summary');
   const [timeRange, setTimeRange] = useState('6M');
   const [tradeMode, setTradeMode] = useState('market'); // market | limit
-  const [actionType, setActionType] = useState('buy'); // buy | sell
+  const [actionType, setActionType] = useState('long'); // long | short
   const [quantity, setQuantity] = useState(1);
+  const [leverage, setLeverage] = useState(1);
   const [limitPrice, setLimitPrice] = useState(stock.price);
+  const [showSMA, setShowSMA] = useState(false);
   
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -32,16 +34,34 @@ export function StockDetailsModal({ stock, onClose }) {
   };
 
   const daysToTake = getDaysForRange(timeRange);
-  const slicedHistory = stock.history.slice(-daysToTake);
   
-  const chartData = slicedHistory.map((val, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (slicedHistory.length - 1 - i));
-    return {
-      name: date.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      cena: val
-    };
-  });
+  // Obliczanie SMA20 (20 dni)
+  const chartData = useMemo(() => {
+    const fullHistory = stock.history;
+    const slicedHistory = fullHistory.slice(-daysToTake);
+    
+    return slicedHistory.map((val, i) => {
+      const globalIndex = fullHistory.length - daysToTake + i;
+      
+      let sma20 = null;
+      if (globalIndex >= 19) {
+        let sum = 0;
+        for (let j = 0; j < 20; j++) {
+          sum += fullHistory[globalIndex - j];
+        }
+        sma20 = sum / 20;
+      }
+      
+      const date = new Date();
+      date.setDate(date.getDate() - (slicedHistory.length - 1 - i));
+      
+      return {
+        name: date.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        cena: val,
+        sma20: sma20 ? Number(sma20.toFixed(2)) : null
+      };
+    });
+  }, [stock.history, daysToTake]);
 
   const handleTrade = (e) => {
     e.preventDefault();
@@ -49,27 +69,26 @@ export function StockDetailsModal({ stock, onClose }) {
     setSuccess('');
     
     try {
+      const targetPrice = tradeMode === 'market' ? currentPrice : limitPrice;
+      const res = brokerService.openPosition(
+        stock.id, 
+        actionType, 
+        quantity, 
+        leverage, 
+        tradeMode === 'limit', 
+        tradeMode === 'limit' ? targetPrice : null
+      );
+      
+      if (!res.success) {
+        setError(res.error);
+        return;
+      }
+
       if (tradeMode === 'market') {
-        const total = quantity * currentPrice;
-        let res;
-        if (actionType === 'buy') {
-          res = brokerService.buyStock(stock.id, quantity);
-        } else {
-          res = brokerService.sellStock(stock.id, quantity);
-        }
-        
-        if (!res.success) {
-          setError(res.error);
-          return;
-        }
-        setSuccess(`Zlecenie rynkowe zrealizowane. Wartość: ${total.toFixed(2)} PLN`);
+        const totalVal = currentPrice * quantity;
+        setSuccess(`Otwarto pozycję ${actionType.toUpperCase()} x${leverage}. Wartość: ${totalVal.toFixed(2)} PLN`);
       } else {
-        const res = brokerService.placeLimitOrder(actionType, stock.id, quantity, limitPrice);
-        if (!res.success) {
-          setError(res.error);
-          return;
-        }
-        setSuccess(`Zlecenie oczekujące (Limit ${actionType === 'buy' ? 'Kupna' : 'Sprzedaży'}) zostało złożone po cenie ${limitPrice.toFixed(2)} PLN.`);
+        setSuccess(`Złożono zlecenie oczekujące ${actionType.toUpperCase()} x${leverage} po cenie ${limitPrice.toFixed(2)} PLN.`);
       }
     } catch (err) {
       setError(err.message || 'Wystąpił nieoczekiwany błąd');
@@ -81,21 +100,34 @@ export function StockDetailsModal({ stock, onClose }) {
       <div className="flex flex-col gap-6">
         {/* Main Chart */}
         <div className="flex flex-col gap-2">
-          <div className="flex gap-2">
-            {['3M', '6M', '1R', '2L', '3L', 'MAX'].map(range => (
-              <button 
-                key={range}
-                className={`btn ${timeRange === range ? 'btn-primary' : 'btn-outline'}`}
-                style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
-                onClick={() => setTimeRange(range)}
-              >
-                {range}
-              </button>
-            ))}
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2">
+              {['3M', '6M', '1R', '2L', '3L', 'MAX'].map(range => (
+                <button 
+                  key={range}
+                  className={`btn ${timeRange === range ? 'btn-primary' : 'btn-outline'}`}
+                  style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
+                  onClick={() => setTimeRange(range)}
+                >
+                  {range}
+                </button>
+              ))}
+            </div>
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input 
+                  type="checkbox" 
+                  checked={showSMA} 
+                  onChange={(e) => setShowSMA(e.target.checked)} 
+                  className="accent-primary"
+                />
+                Pokaż SMA (20)
+              </label>
+            </div>
           </div>
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
+              <ComposedChart data={chartData}>
                 <defs>
                   <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={isUp ? 'var(--success)' : 'var(--danger)'} stopOpacity={0.8}/>
@@ -116,7 +148,17 @@ export function StockDetailsModal({ stock, onClose }) {
                   fill="url(#colorPrice)" 
                   isAnimationActive={false}
                 />
-              </AreaChart>
+                {showSMA && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="sma20" 
+                    stroke="#f59e0b" 
+                    strokeWidth={2} 
+                    dot={false}
+                    isAnimationActive={false} 
+                  />
+                )}
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -150,16 +192,16 @@ export function StockDetailsModal({ stock, onClose }) {
         
         <div className="flex gap-2 mb-4">
           <button 
-            className={`flex-1 py-2 btn ${actionType === 'buy' ? 'btn-success' : 'btn-outline'}`}
-            onClick={() => { setActionType('buy'); setError(''); setSuccess(''); }}
+            className={`flex-1 py-2 btn ${actionType === 'long' ? 'btn-success' : 'btn-outline'}`}
+            onClick={() => { setActionType('long'); setError(''); setSuccess(''); }}
           >
-            KUP
+            KUP (LONG)
           </button>
           <button 
-            className={`flex-1 py-2 btn ${actionType === 'sell' ? 'btn-danger' : 'btn-outline'}`}
-            onClick={() => { setActionType('sell'); setError(''); setSuccess(''); }}
+            className={`flex-1 py-2 btn ${actionType === 'short' ? 'btn-danger' : 'btn-outline'}`}
+            onClick={() => { setActionType('short'); setError(''); setSuccess(''); }}
           >
-            SPRZEDAJ
+            SPRZEDAJ (SHORT)
           </button>
         </div>
 
@@ -191,6 +233,22 @@ export function StockDetailsModal({ stock, onClose }) {
             />
           </div>
 
+          <div className="input-group">
+            <label className="input-label">Dźwignia (Leverage)</label>
+            <div className="flex gap-2 mt-1">
+              {[1, 2, 5, 10].map(lev => (
+                <button
+                  type="button"
+                  key={lev}
+                  className={`flex-1 py-2 btn ${leverage === lev ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => setLeverage(lev)}
+                >
+                  x{lev}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {tradeMode === 'limit' && (
             <div className="input-group">
               <label className="input-label">Limit Ceny (PLN)</label>
@@ -215,7 +273,11 @@ export function StockDetailsModal({ stock, onClose }) {
               <span className="text-danger">~{Math.max(5, (quantity * (tradeMode === 'market' ? currentPrice : limitPrice)) * 0.0039).toFixed(2)} PLN</span>
             </div>
             <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t border-[rgba(255,255,255,0.1)]">
-              <span>Szacowana wartość:</span>
+              <span>Wymagany Depozyt (Margin):</span>
+              <span>{((quantity * (tradeMode === 'market' ? currentPrice : limitPrice)) / leverage).toFixed(2)} PLN</span>
+            </div>
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-muted">Całkowita wartość pozycji:</span>
               <span>{(quantity * (tradeMode === 'market' ? currentPrice : limitPrice)).toFixed(2)} PLN</span>
             </div>
           </div>
@@ -225,9 +287,9 @@ export function StockDetailsModal({ stock, onClose }) {
 
           <button 
             type="submit" 
-            className={`btn w-full py-3 text-lg mt-2 ${actionType === 'buy' ? 'btn-success' : 'btn-danger'}`}
+            className={`btn w-full py-3 text-lg mt-2 ${actionType === 'long' ? 'btn-success' : 'btn-danger'}`}
           >
-            {actionType === 'buy' ? 'KUP TERAZ' : 'SPRZEDAJ TERAZ'}
+            {actionType === 'long' ? 'OTWÓRZ LONG' : 'OTWÓRZ SHORT'}
           </button>
         </form>
 
@@ -289,7 +351,6 @@ export function StockDetailsModal({ stock, onClose }) {
 
   const renderEarningsTab = () => {
     const rec = stock.fundamentals.recommendation;
-    // Przygotowanie danych do wskaźnika "Gauge"
     const gaugeData = [
       { name: 'Sprzedawaj', value: 20, fill: '#ef4444' },
       { name: 'Trzymaj', value: 20, fill: '#f59e0b' },
@@ -327,7 +388,6 @@ export function StockDetailsModal({ stock, onClose }) {
                 />
               </PieChart>
             </ResponsiveContainer>
-            {/* Strzałka wskaźnika - bardzo prosta implementacja */}
             <div className="flex justify-center -mt-8 font-bold text-xl">
               Wynik: {rec.score} / 5
             </div>

@@ -3,16 +3,14 @@ import { marketService } from './marketService';
 class BrokerService {
   constructor() {
     this.storageKey = 'symulacja_gieldy_broker_state';
-    
-    // Zawsze startujemy z 10 000 wirtualnych PLN
     this.initialBalance = 10000;
-    
     this.state = this.loadState();
     this.listeners = [];
 
-    // Nasłuchujemy zmian na rynku, aby realizować zlecenia z limitem i księgować dywidendy
     marketService.subscribe((stocks, currentNews, newsHistory, dividendEvent) => {
       this.checkLimitOrders(stocks);
+      this.checkPriceAlerts(stocks);
+      this.checkMarginCalls(stocks);
       if (dividendEvent) {
         this.processDividend(dividendEvent);
       }
@@ -21,23 +19,27 @@ class BrokerService {
 
   processDividend(dividendEvent) {
     const { stockId, dividendPerShare } = dividendEvent;
-    const portfolioStock = this.state.portfolio[stockId];
     
-    if (portfolioStock && portfolioStock.quantity > 0) {
-      const payout = portfolioStock.quantity * dividendPerShare;
-      this.state.balance += payout;
-      
+    // W nowym modelu przechodzimy przez otwarte pozycje "long" dla dywidend
+    const longPositions = this.state.positions.filter(p => p.stockId === stockId && p.type === 'long');
+    let totalPayout = 0;
+    
+    longPositions.forEach(pos => {
+      totalPayout += pos.quantity * dividendPerShare;
+    });
+
+    if (totalPayout > 0) {
+      this.state.balance += totalPayout;
       this.state.transactions.unshift({
         id: Date.now().toString() + 'div',
         type: 'DIVIDEND',
         stockId,
-        quantity: portfolioStock.quantity,
-        price: dividendPerShare, // jako kwota per akcja
+        quantity: 0,
+        price: dividendPerShare,
         commission: 0,
-        total: payout,
+        total: totalPayout,
         date: new Date().toISOString()
       });
-      
       this.saveState();
     }
   }
@@ -48,6 +50,26 @@ class BrokerService {
       try {
         const parsed = JSON.parse(saved);
         if (!parsed.limitOrders) parsed.limitOrders = [];
+        if (!parsed.priceAlerts) parsed.priceAlerts = [];
+        if (!parsed.positions) {
+          parsed.positions = [];
+          if (parsed.portfolio) {
+            Object.entries(parsed.portfolio).forEach(([stockId, data]) => {
+              if (data.quantity > 0) {
+                parsed.positions.push({
+                  id: Date.now().toString() + Math.random().toString().slice(2, 6),
+                  stockId,
+                  type: 'long',
+                  quantity: data.quantity,
+                  entryPrice: data.averagePrice,
+                  leverage: 1,
+                  margin: data.quantity * data.averagePrice
+                });
+              }
+            });
+            delete parsed.portfolio;
+          }
+        }
         return parsed;
       } catch(e) {
         console.error('Failed to load state', e);
@@ -55,9 +77,10 @@ class BrokerService {
     }
     return {
       balance: this.initialBalance,
-      portfolio: {}, // { 'AAPL': { quantity: 10, averagePrice: 150 } }
-      transactions: [], // { id, type, stockId, quantity, price, commission, total, date }
-      limitOrders: [] // { id, type, stockId, quantity, targetPrice, status }
+      positions: [],
+      transactions: [],
+      limitOrders: [],
+      priceAlerts: []
     };
   }
 
@@ -68,7 +91,6 @@ class BrokerService {
 
   subscribe(listener) {
     this.listeners.push(listener);
-    // wyślij obecny stan od razu po subskrypcji
     listener(this.state);
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener);
@@ -90,134 +112,107 @@ class BrokerService {
     return commission > minCommission ? commission : minCommission;
   }
 
-  // Zlecenie natychmiastowe (Market Order)
-  buyStock(stockId, quantity) {
-    const stock = marketService.getStock(stockId);
-    if (!stock || quantity <= 0) return { success: false, error: 'Nieprawidłowa akcja lub ilość' };
-
-    return this.executeBuy(stockId, quantity, stock.price);
-  }
-
-  sellStock(stockId, quantity) {
-    const stock = marketService.getStock(stockId);
-    if (!stock || quantity <= 0) return { success: false, error: 'Nieprawidłowa akcja lub ilość' };
-
-    return this.executeSell(stockId, quantity, stock.price);
-  }
-
-  // Realizacja kupna z podaną ceną (wspólna dla Market i Limit)
-  executeBuy(stockId, quantity, price, isLimit = false) {
-    const value = price * quantity;
-    const commission = this.calculateCommission(value);
-    const totalCost = value + commission;
-
-    if (this.state.balance < totalCost) {
-      return { success: false, error: 'Brak wystarczających środków na koncie (uwzględniając prowizję)' };
-    }
-
-    this.state.balance -= totalCost;
-
-    if (!this.state.portfolio[stockId]) {
-      this.state.portfolio[stockId] = { quantity: 0, averagePrice: 0 };
-    }
-    
-    const currPort = this.state.portfolio[stockId];
-    const totalValueBefore = currPort.quantity * currPort.averagePrice;
-    currPort.quantity += quantity;
-    currPort.averagePrice = (totalValueBefore + totalCost) / currPort.quantity;
-
-    this.state.transactions.unshift({
-      id: Date.now().toString() + Math.random().toString().slice(2, 6),
-      type: isLimit ? 'LIMIT_BUY_EXEC' : 'BUY',
-      stockId,
-      quantity,
-      price,
-      commission,
-      total: totalCost,
-      date: new Date().toISOString()
-    });
-
-    this.saveState();
-    return { success: true };
-  }
-
-  // Realizacja sprzedaży z podaną ceną
-  executeSell(stockId, quantity, price, isLimit = false) {
-    const currPort = this.state.portfolio[stockId];
-    if (!currPort || currPort.quantity < quantity) {
-      return { success: false, error: 'Nie masz wystarczającej ilości akcji do sprzedaży' };
-    }
-
-    const value = price * quantity;
-    const commission = this.calculateCommission(value);
-    const totalRevenue = value - commission; 
-
-    this.state.balance += totalRevenue;
-    currPort.quantity -= quantity;
-    
-    if (currPort.quantity === 0) {
-      delete this.state.portfolio[stockId];
-    }
-
-    this.state.transactions.unshift({
-      id: Date.now().toString() + Math.random().toString().slice(2, 6),
-      type: isLimit ? 'LIMIT_SELL_EXEC' : 'SELL',
-      stockId,
-      quantity,
-      price,
-      commission,
-      total: totalRevenue,
-      date: new Date().toISOString()
-    });
-
-    this.saveState();
-    return { success: true };
-  }
-
-  // Zlecenie oczekujące (Limit Order)
-  placeLimitOrder(type, stockId, quantity, targetPrice) {
-    if (quantity <= 0 || targetPrice <= 0) return { success: false, error: 'Nieprawidłowa ilość lub cena' };
-    
+  openPosition(stockId, type, quantity, leverage = 1, isLimit = false, targetPrice = null) {
+    if (quantity <= 0) return { success: false, error: 'Nieprawidłowa ilość' };
     const stock = marketService.getStock(stockId);
     if (!stock) return { success: false, error: 'Nieprawidłowa akcja' };
 
-    // Zablokuj środki lub sprawdź stan posiadania akcji
-    if (type === 'buy') {
-      const value = targetPrice * quantity;
-      const commission = this.calculateCommission(value);
-      const totalCost = value + commission;
-      
-      // Oblicz już zablokowane środki na inne zlecenia kupna
+    const price = isLimit ? targetPrice : stock.price;
+    const totalValue = price * quantity;
+    const requiredMargin = totalValue / leverage;
+    const commission = this.calculateCommission(totalValue);
+    const totalCost = requiredMargin + commission;
+
+    if (isLimit) {
+      // Dla zleceń oczekujących blokujemy środki tak jakbyśmy wchodzili teraz
       const lockedFunds = this.state.limitOrders
-        .filter(o => o.type === 'buy' && o.status === 'pending')
-        .reduce((sum, o) => sum + (o.targetPrice * o.quantity) + this.calculateCommission(o.targetPrice * o.quantity), 0);
+        .filter(o => o.status === 'pending')
+        .reduce((sum, o) => sum + (o.quantity * o.targetPrice / o.leverage) + this.calculateCommission(o.quantity * o.targetPrice), 0);
         
       if (this.state.balance - lockedFunds < totalCost) {
-         return { success: false, error: 'Brak wolnych środków na to zlecenie oczekujące' };
+         return { success: false, error: 'Brak wolnych środków na depozyt i prowizję' };
       }
-    } else {
-       // Sprawdź czy mamy wystarczająco akcji (odejmując te już zablokowane na innych zleceniach)
-       const currPort = this.state.portfolio[stockId];
-       const owned = currPort ? currPort.quantity : 0;
-       const lockedShares = this.state.limitOrders
-         .filter(o => o.type === 'sell' && o.stockId === stockId && o.status === 'pending')
-         .reduce((sum, o) => sum + o.quantity, 0);
-         
-       if (owned - lockedShares < quantity) {
-         return { success: false, error: 'Nie masz wystarczającej liczby wolnych akcji' };
-       }
+
+      this.state.limitOrders.push({
+        id: Date.now().toString() + Math.random().toString().slice(2, 6),
+        type, // 'long' lub 'short'
+        stockId,
+        quantity,
+        targetPrice,
+        leverage,
+        status: 'pending',
+        date: new Date().toISOString()
+      });
+      this.saveState();
+      return { success: true };
     }
 
-    this.state.limitOrders.push({
+    // Wykonanie Market
+    if (this.state.balance < totalCost) {
+      return { success: false, error: 'Brak środków na zabezpieczenie pozycji i prowizję' };
+    }
+
+    this.state.balance -= totalCost;
+    
+    this.state.positions.push({
       id: Date.now().toString() + Math.random().toString().slice(2, 6),
-      type, // 'buy' | 'sell'
       stockId,
+      type,
       quantity,
-      targetPrice,
-      status: 'pending',
+      entryPrice: stock.price,
+      leverage,
+      margin: requiredMargin,
       date: new Date().toISOString()
     });
 
+    this.state.transactions.unshift({
+      id: Date.now().toString() + Math.random().toString().slice(2, 6),
+      type: type === 'long' ? 'OPEN_LONG' : 'OPEN_SHORT',
+      stockId,
+      quantity,
+      price: stock.price,
+      commission,
+      total: -totalCost,
+      date: new Date().toISOString()
+    });
+
+    this.saveState();
+    return { success: true };
+  }
+
+  closePosition(positionId) {
+    const posIndex = this.state.positions.findIndex(p => p.id === positionId);
+    if (posIndex === -1) return { success: false, error: 'Pozycja nie istnieje' };
+    
+    const pos = this.state.positions[posIndex];
+    const stock = marketService.getStock(pos.stockId);
+    
+    const totalValue = pos.quantity * stock.price;
+    const commission = this.calculateCommission(totalValue);
+
+    let profit = 0;
+    if (pos.type === 'long') {
+      profit = (stock.price - pos.entryPrice) * pos.quantity;
+    } else {
+      profit = (pos.entryPrice - stock.price) * pos.quantity;
+    }
+
+    // Dodajemy margin i profit, odejmujemy prowizję zamknięcia
+    const closeRevenue = pos.margin + profit - commission;
+    this.state.balance += closeRevenue;
+    
+    this.state.transactions.unshift({
+      id: Date.now().toString() + Math.random().toString().slice(2, 6),
+      type: pos.type === 'long' ? 'CLOSE_LONG' : 'CLOSE_SHORT',
+      stockId: pos.stockId,
+      quantity: pos.quantity,
+      price: stock.price,
+      commission,
+      total: closeRevenue,
+      date: new Date().toISOString()
+    });
+
+    this.state.positions.splice(posIndex, 1);
     this.saveState();
     return { success: true };
   }
@@ -232,50 +227,162 @@ class BrokerService {
     return false;
   }
 
-  // Sprawdzanie czy rynek dotarł do limitów
   checkLimitOrders(stocks) {
     let changed = false;
     this.state.limitOrders.forEach(order => {
       if (order.status !== 'pending') return;
-
       const stock = stocks.find(s => s.id === order.stockId);
       if (!stock) return;
 
-      // Limit Buy: Cena rynkowa spadła poniżej lub do celu
-      if (order.type === 'buy' && stock.price <= order.targetPrice) {
-         const res = this.executeBuy(order.stockId, order.quantity, order.targetPrice, true);
-         if(res.success) {
-           order.status = 'executed';
-           changed = true;
+      if ((order.type === 'long' && stock.price <= order.targetPrice) || 
+          (order.type === 'short' && stock.price >= order.targetPrice)) {
+         
+         // Spróbuj wykonać
+         const totalValue = order.targetPrice * order.quantity;
+         const requiredMargin = totalValue / order.leverage;
+         const commission = this.calculateCommission(totalValue);
+         const totalCost = requiredMargin + commission;
+
+         if (this.state.balance >= totalCost) {
+            this.state.balance -= totalCost;
+            this.state.positions.push({
+              id: Date.now().toString() + Math.random().toString().slice(2, 6),
+              stockId: order.stockId,
+              type: order.type,
+              quantity: order.quantity,
+              entryPrice: order.targetPrice,
+              leverage: order.leverage,
+              margin: requiredMargin,
+              date: new Date().toISOString()
+            });
+
+            this.state.transactions.unshift({
+              id: Date.now().toString() + Math.random().toString().slice(2, 6),
+              type: order.type === 'long' ? 'LIMIT_LONG_EXEC' : 'LIMIT_SHORT_EXEC',
+              stockId: order.stockId,
+              quantity: order.quantity,
+              price: order.targetPrice,
+              commission,
+              total: -totalCost,
+              date: new Date().toISOString()
+            });
+
+            order.status = 'executed';
          } else {
-           order.status = 'failed'; // np. brakło środków pomimo blokady (mało prawdopodobne, ale dla bezpieczeństwa)
-           changed = true;
+            order.status = 'failed';
          }
-      }
-      // Limit Sell: Cena rynkowa wzrosła powyżej lub do celu
-      else if (order.type === 'sell' && stock.price >= order.targetPrice) {
-         const res = this.executeSell(order.stockId, order.quantity, order.targetPrice, true);
-         if(res.success) {
-           order.status = 'executed';
-           changed = true;
-         } else {
-           order.status = 'failed';
-           changed = true;
-         }
+         changed = true;
       }
     });
+    if (changed) this.saveState();
+  }
 
-    if (changed) {
-      this.saveState();
+  checkMarginCalls(stocks) {
+    let changed = false;
+    // Sprawdzanie czy strata na pozycji jest większa lub bliska marginowi.
+    // Dla uproszczenia zamykamy gdy margin + profit <= 0. 
+    // Czyli cały depozyt zabezpieczający został zjedzony przez stratę.
+    
+    // Iterujemy od końca, żeby bezpiecznie usuwać elementy
+    for (let i = this.state.positions.length - 1; i >= 0; i--) {
+      const pos = this.state.positions[i];
+      const stock = stocks.find(s => s.id === pos.stockId);
+      if (!stock) continue;
+
+      let profit = 0;
+      if (pos.type === 'long') {
+        profit = (stock.price - pos.entryPrice) * pos.quantity;
+      } else {
+        profit = (pos.entryPrice - stock.price) * pos.quantity;
+      }
+
+      if (pos.margin + profit <= 0) {
+        // MARGIN CALL - Auto zamknięcie
+        const totalValue = pos.quantity * stock.price;
+        const commission = this.calculateCommission(totalValue);
+        
+        // Zamykamy z wynikiem (0, bo margin zjedzony) i ewentualnie dodajemy dług za prowizję
+        const closeRevenue = pos.margin + profit - commission; 
+        this.state.balance += closeRevenue; // Prawdopodobnie będzie to ujemne ze względu na prowizję
+        
+        this.state.transactions.unshift({
+          id: Date.now().toString() + 'mc',
+          type: 'MARGIN_CALL',
+          stockId: pos.stockId,
+          quantity: pos.quantity,
+          price: stock.price,
+          commission,
+          total: closeRevenue,
+          date: new Date().toISOString()
+        });
+        
+        // Powiadomienie
+        marketService.notify({
+          id: Date.now().toString(),
+          stockId: pos.stockId,
+          message: `MARGIN CALL! Twoja pozycja na ${pos.stockId} została przymusowo zamknięta z powodu braku depozytu.`,
+          isPositive: false,
+          date: new Date().toISOString()
+        });
+
+        this.state.positions.splice(i, 1);
+        changed = true;
+      }
     }
+    
+    if (changed) this.saveState();
+  }
+
+  // --- Alerty ---
+  addPriceAlert(stockId, targetPrice, type) {
+    this.state.priceAlerts.push({
+      id: Date.now().toString() + Math.random().toString().slice(2, 6),
+      stockId,
+      targetPrice,
+      type, // 'above' lub 'below'
+      active: true
+    });
+    this.saveState();
+  }
+
+  removePriceAlert(id) {
+    this.state.priceAlerts = this.state.priceAlerts.filter(a => a.id !== id);
+    this.saveState();
+  }
+
+  checkPriceAlerts(stocks) {
+    let changed = false;
+    this.state.priceAlerts.forEach(alert => {
+      if (!alert.active) return;
+      const stock = stocks.find(s => s.id === alert.stockId);
+      if (!stock) return;
+
+      if ((alert.type === 'above' && stock.price >= alert.targetPrice) ||
+          (alert.type === 'below' && stock.price <= alert.targetPrice)) {
+          
+          alert.active = false;
+          changed = true;
+
+          // Uruchom powiadomienie ogólne przez marketService
+          marketService.notify({
+            id: Date.now().toString() + 'alert',
+            stockId: stock.id,
+            message: `ALERT CENOWY: ${stock.name} osiągnął wyznaczony poziom ${alert.targetPrice} PLN! (Aktualna cena: ${stock.price} PLN)`,
+            isPositive: true,
+            date: new Date().toISOString()
+          });
+      }
+    });
+    if (changed) this.saveState();
   }
 
   resetAccount() {
     this.state = {
       balance: this.initialBalance,
-      portfolio: {},
+      positions: [],
       transactions: [],
-      limitOrders: []
+      limitOrders: [],
+      priceAlerts: []
     };
     this.saveState();
   }
