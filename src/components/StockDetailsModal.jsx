@@ -211,8 +211,18 @@ export function StockDetailsModal({ stock, onClose }) {
           </button>
         </div>
 
-        <div className="text-center text-xs text-muted mb-4">
-          Zajmujesz nową pozycję CFD (Kontrakt Różnicy Kursowej). <br/>Aby zamknąć obecne pozycje, przejdź do zakładki <strong>Pulpit</strong>.
+        <div className="text-center text-xs text-muted mb-4 px-2 leading-relaxed">
+          {actionType === 'long' ? (
+            <>
+              Otwierasz <strong>nową pozycję na wzrost (LONG)</strong>. Zyskujesz, gdy cena rośnie.<br/>
+              <span className="text-[rgba(255,255,255,0.5)] mt-1 block">Aby zamknąć wcześniej otwartą pozycję, przejdź do zakładki <strong>Pulpit</strong> i kliknij "Zamknij".</span>
+            </>
+          ) : (
+            <>
+              Otwierasz <strong>nową pozycję na spadek (SHORT)</strong>. Zyskujesz, gdy cena spada.<br/>
+              <span className="text-warning mt-1 block"><strong>Uwaga:</strong> To nie służy do sprzedaży posiadanych akcji! Aby zamknąć pozycję, przejdź do zakładki <strong>Pulpit</strong>.</span>
+            </>
+          )}
         </div>
 
         <div className="flex gap-2 mb-4">
