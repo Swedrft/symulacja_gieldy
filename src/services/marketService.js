@@ -14,6 +14,9 @@ class MarketService {
       { id: 'INTC', name: 'Intel Corp.', category: 'US Tech', price: 30.50, change: 0, trend: 'down', history: [] },
       { id: 'UBER', name: 'Uber Technologies', category: 'US Tech', price: 71.30, change: 0, trend: 'up', history: [] },
       { id: 'ABNB', name: 'Airbnb Inc.', category: 'US Tech', price: 152.10, change: 0, trend: 'up', history: [] },
+      { id: 'PLTR', name: 'Palantir Technologies', category: 'US Tech', price: 21.50, change: 0, trend: 'up', history: [] },
+      { id: 'ADBE', name: 'Adobe Inc.', category: 'US Tech', price: 470.20, change: 0, trend: 'down', history: [] },
+      { id: 'CRM', name: 'Salesforce', category: 'US Tech', price: 280.10, change: 0, trend: 'up', history: [] },
       
       // US Other (S&P 500)
       { id: 'KO', name: 'Coca-Cola Co.', category: 'US Inne', price: 62.50, change: 0, trend: 'up', history: [] },
@@ -60,6 +63,15 @@ class MarketService {
       { id: 'DAL', name: 'Delta Air Lines', category: 'Lotnictwo', price: 50.80, change: 0, trend: 'up', history: [] },
       { id: 'RYA', name: 'Ryanair Holdings', category: 'Lotnictwo', price: 21.40, change: 0, trend: 'up', history: [] },
       { id: 'LHA', name: 'Lufthansa', category: 'Lotnictwo', price: 7.50, change: 0, trend: 'down', history: [] },
+      { id: 'ETI', name: 'Etihad Airways', category: 'Lotnictwo', price: 42.10, change: 0, trend: 'up', history: [] },
+      { id: 'AAL', name: 'American Airlines', category: 'Lotnictwo', price: 14.50, change: 0, trend: 'up', history: [] },
+      { id: 'AF', name: 'Air France-KLM', category: 'Lotnictwo', price: 11.20, change: 0, trend: 'down', history: [] },
+      { id: 'UAL', name: 'United Airlines', category: 'Lotnictwo', price: 48.30, change: 0, trend: 'up', history: [] },
+      { id: 'LUV', name: 'Southwest Airlines', category: 'Lotnictwo', price: 29.80, change: 0, trend: 'down', history: [] },
+      { id: 'EZJ', name: 'easyJet plc', category: 'Lotnictwo', price: 5.60, change: 0, trend: 'up', history: [] },
+      { id: 'QAN', name: 'Qantas Airways', category: 'Lotnictwo', price: 4.10, change: 0, trend: 'up', history: [] },
+      { id: 'SIA', name: 'Singapore Airlines', category: 'Lotnictwo', price: 4.80, change: 0, trend: 'up', history: [] },
+      { id: 'EMI', name: 'Emirates', category: 'Lotnictwo', price: 55.40, change: 0, trend: 'up', history: [] },
 
       // Motoryzacja
       { id: 'TM', name: 'Toyota Motor Corp.', category: 'Motoryzacja', price: 240.10, change: 0, trend: 'up', history: [] },
@@ -73,6 +85,16 @@ class MarketService {
       { id: 'HYMTF', name: 'Hyundai Motor Co.', category: 'Motoryzacja', price: 42.10, change: 0, trend: 'up', history: [] },
       { id: 'RNO', name: 'Renault SA', category: 'Motoryzacja', price: 48.90, change: 0, trend: 'up', history: [] },
       { id: 'AML', name: 'Aston Martin', category: 'Motoryzacja', price: 2.10, change: 0, trend: 'down', history: [] },
+      { id: 'GM', name: 'Chevrolet (General Motors)', category: 'Motoryzacja', price: 46.50, change: 0, trend: 'up', history: [] },
+      { id: 'P911', name: 'Porsche AG', category: 'Motoryzacja', price: 82.10, change: 0, trend: 'up', history: [] },
+      { id: 'NIO', name: 'NIO Inc.', category: 'Motoryzacja', price: 5.40, change: 0, trend: 'down', history: [] },
+      { id: 'RIVN', name: 'Rivian Automotive', category: 'Motoryzacja', price: 14.20, change: 0, trend: 'up', history: [] },
+      { id: 'LCID', name: 'Lucid Group', category: 'Motoryzacja', price: 3.10, change: 0, trend: 'down', history: [] },
+      { id: 'FUJHY', name: 'Subaru Corp.', category: 'Motoryzacja', price: 12.80, change: 0, trend: 'up', history: [] },
+      { id: 'NSANY', name: 'Nissan Motor', category: 'Motoryzacja', price: 7.20, change: 0, trend: 'down', history: [] },
+      { id: 'SZKMY', name: 'Suzuki Motor', category: 'Motoryzacja', price: 28.40, change: 0, trend: 'up', history: [] },
+      { id: 'MZDAY', name: 'Mazda Motor', category: 'Motoryzacja', price: 6.30, change: 0, trend: 'up', history: [] },
+      { id: 'VOLV', name: 'Volvo Group', category: 'Motoryzacja', price: 26.50, change: 0, trend: 'up', history: [] },
 
       // Global (Blue Chips)
       { id: 'NKE', name: 'Nike, Inc.', category: 'US Inne', price: 92.50, change: 0, trend: 'up', history: [] },
@@ -81,6 +103,9 @@ class MarketService {
       { id: 'PFE', name: 'Pfizer Inc.', category: 'US Inne', price: 28.70, change: 0, trend: 'down', history: [] },
       { id: 'MRNA', name: 'Moderna, Inc.', category: 'US Inne', price: 110.20, change: 0, trend: 'up', history: [] },
       { id: 'PG', name: 'Procter & Gamble', category: 'US Inne', price: 165.80, change: 0, trend: 'up', history: [] },
+      { id: 'MC', name: 'LVMH Moët Hennessy', category: 'US Inne', price: 820.50, change: 0, trend: 'down', history: [] },
+      { id: 'NVO', name: 'Novo Nordisk', category: 'US Inne', price: 135.20, change: 0, trend: 'up', history: [] },
+      { id: 'NVS', name: 'Novartis AG', category: 'US Inne', price: 105.40, change: 0, trend: 'up', history: [] },
     ];
     
     this.newsHistory = [];
