@@ -229,7 +229,7 @@ export function Tools({ brokerState, marketData }) {
       </div>
 
       {/* Kredyt Bankowy */}
-      <div className="glass-panel flex flex-col">
+      <div className="glass-panel flex flex-col" style={{ alignSelf: 'start' }}>
         <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-gradient">
           <Landmark size={24} /> Bank (Kredyt Gotówkowy)
         </h2>
