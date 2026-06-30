@@ -405,3 +405,13 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--danger-bg);
   color: var(--danger);
 }
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+}
+
+.badge-info {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent-primary);
+}

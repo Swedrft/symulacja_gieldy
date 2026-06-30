@@ -59,16 +59,23 @@ export function History({ brokerState }) {
                   <tr key={t.id} className="stock-row">
                     <td className="text-sm text-muted">{new Date(t.date).toLocaleString()}</td>
                     <td>
-                      <span className={`badge ${t.type.includes('BUY') ? 'badge-success' : 'badge-danger'}`}>
-                        {t.type.replace('_EXEC', '')}
+                      <span className={`badge ${
+                        t.type === 'LONG_OPEN' ? 'badge-success' :
+                        t.type === 'SHORT_OPEN' ? 'badge-danger' :
+                        t.type === 'LONG_CLOSE' ? 'badge-warning' :
+                        'badge-info'
+                      }`}>
+                        {t.type}
                       </span>
                     </td>
                     <td className="font-bold">{t.stockId}</td>
                     <td>{t.quantity} szt.</td>
                     <td>{t.price.toFixed(2)} PLN</td>
                     <td className="text-danger">-{t.commission.toFixed(2)} PLN</td>
-                    <td className={`text-right font-bold ${t.type.includes('BUY') ? 'text-danger' : 'text-success'}`}>
-                      {t.type.includes('BUY') ? '-' : '+'}{t.total.toFixed(2)} PLN
+                    <td className={`text-right font-bold ${
+                      (t.type === 'LONG_OPEN' || t.type === 'SHORT_OPEN') ? 'text-danger' : 'text-success'
+                    }`}>
+                      {(t.type === 'LONG_OPEN' || t.type === 'SHORT_OPEN') ? '-' : '+'}{t.total.toFixed(2)} PLN
                     </td>
                   </tr>
                 ))}

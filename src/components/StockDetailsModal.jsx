@@ -196,17 +196,23 @@ export function StockDetailsModal({ stock, onClose }) {
         
         <div className="flex gap-2 mb-4">
           <button 
+            type="button"
             className={`flex-1 py-2 btn ${actionType === 'long' ? 'btn-success' : 'btn-outline'}`}
             onClick={() => { setActionType('long'); setError(''); setSuccess(''); }}
           >
-            KUP (LONG)
+            OTWÓRZ KUPNO (LONG)
           </button>
           <button 
+            type="button"
             className={`flex-1 py-2 btn ${actionType === 'short' ? 'btn-danger' : 'btn-outline'}`}
             onClick={() => { setActionType('short'); setError(''); setSuccess(''); }}
           >
-            SPRZEDAJ (SHORT)
+            GRAJ NA SPADEK (SHORT)
           </button>
+        </div>
+
+        <div className="text-center text-xs text-muted mb-4">
+          Zajmujesz nową pozycję CFD (Kontrakt Różnicy Kursowej). <br/>Aby zamknąć obecne pozycje, przejdź do zakładki <strong>Pulpit</strong>.
         </div>
 
         <div className="flex gap-2 mb-4">
