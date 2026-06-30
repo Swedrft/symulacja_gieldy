@@ -269,7 +269,7 @@ export function Tools({ brokerState, marketData }) {
       </div>
 
       {/* Kalendarz Dywidend */}
-      <div className="glass-panel flex flex-col overflow-hidden" style={{ minHeight: '400px' }}>
+      <div className="glass-panel flex flex-col overflow-hidden" style={{ height: '380px' }}>
         <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-gradient">
           <Calendar size={24} /> Kalendarz Dywidend
         </h2>
