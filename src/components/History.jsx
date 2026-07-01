@@ -4,12 +4,15 @@ import { brokerService } from '../services/brokerService';
 
 export function History({ brokerState }) {
   const [activeTab, setActiveTab] = useState('transactions'); // 'transactions' | 'orders'
+  const [visibleTransactionsCount, setVisibleTransactionsCount] = useState(50);
 
   const handleCancelOrder = (id) => {
     if (confirm('Czy na pewno chcesz anulować to zlecenie?')) {
       brokerService.cancelLimitOrder(id);
     }
   };
+
+  const visibleTransactions = brokerState.transactions.slice(0, visibleTransactionsCount);
 
   return (
     <div className="animate-fade-in grid gap-8">
@@ -35,53 +38,65 @@ export function History({ brokerState }) {
 
       <div className="glass-panel">
         {activeTab === 'transactions' ? (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="stock-list">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Typ</th>
-                  <th>Walor</th>
-                  <th>Ilość</th>
-                  <th>Kurs</th>
-                  <th>Prowizja</th>
-                  <th className="text-right">Wartość Netto</th>
-                </tr>
-              </thead>
-              <tbody>
-                {brokerState.transactions.length === 0 ? (
+          <>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="stock-list">
+                <thead>
                   <tr>
-                    <td colSpan="7" className="text-center py-8 text-muted">
-                      Brak historii transakcji.
-                    </td>
+                    <th>Data</th>
+                    <th>Typ</th>
+                    <th>Walor</th>
+                    <th>Ilość</th>
+                    <th>Kurs</th>
+                    <th>Prowizja</th>
+                    <th className="text-right">Wartość Netto</th>
                   </tr>
-                ) : brokerState.transactions.map(t => (
-                  <tr key={t.id} className="stock-row">
-                    <td className="text-sm text-muted">{new Date(t.date).toLocaleString()}</td>
-                    <td>
-                      <span className={`badge ${
-                        t.type === 'LONG_OPEN' ? 'badge-success' :
-                        t.type === 'SHORT_OPEN' ? 'badge-danger' :
-                        t.type === 'LONG_CLOSE' ? 'badge-warning' :
-                        'badge-info'
+                </thead>
+                <tbody>
+                  {brokerState.transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="text-center py-8 text-muted">
+                        Brak historii transakcji.
+                      </td>
+                    </tr>
+                  ) : visibleTransactions.map(t => (
+                    <tr key={t.id} className="stock-row">
+                      <td className="text-sm text-muted">{new Date(t.date).toLocaleString()}</td>
+                      <td>
+                        <span className={`badge ${
+                          t.type === 'LONG_OPEN' ? 'badge-success' :
+                          t.type === 'SHORT_OPEN' ? 'badge-danger' :
+                          t.type === 'LONG_CLOSE' ? 'badge-warning' :
+                          'badge-info'
+                        }`}>
+                          {t.type}
+                        </span>
+                      </td>
+                      <td className="font-bold">{t.stockId}</td>
+                      <td>{t.quantity} szt.</td>
+                      <td>{t.price.toFixed(2)} PLN</td>
+                      <td className="text-danger">-{t.commission.toFixed(2)} PLN</td>
+                      <td className={`text-right font-bold ${
+                        (t.type === 'LONG_OPEN' || t.type === 'SHORT_OPEN') ? 'text-danger' : 'text-success'
                       }`}>
-                        {t.type}
-                      </span>
-                    </td>
-                    <td className="font-bold">{t.stockId}</td>
-                    <td>{t.quantity} szt.</td>
-                    <td>{t.price.toFixed(2)} PLN</td>
-                    <td className="text-danger">-{t.commission.toFixed(2)} PLN</td>
-                    <td className={`text-right font-bold ${
-                      (t.type === 'LONG_OPEN' || t.type === 'SHORT_OPEN') ? 'text-danger' : 'text-success'
-                    }`}>
-                      {(t.type === 'LONG_OPEN' || t.type === 'SHORT_OPEN') ? '-' : '+'}{t.total.toFixed(2)} PLN
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        {(t.type === 'LONG_OPEN' || t.type === 'SHORT_OPEN') ? '-' : '+'}{t.total.toFixed(2)} PLN
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {brokerState.transactions.length > visibleTransactionsCount && (
+              <div className="flex justify-center mt-6">
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => setVisibleTransactionsCount(prev => prev + 50)}
+                >
+                  Pokaż więcej (+50)
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table className="stock-list">

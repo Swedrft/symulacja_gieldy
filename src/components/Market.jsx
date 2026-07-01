@@ -1,7 +1,59 @@
 import React, { useState } from 'react';
 import { ArrowUpRight, ArrowDownRight, ShoppingCart } from 'lucide-react';
 import { StockDetailsModal } from './StockDetailsModal';
-import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
+
+// Lekki, zoptymalizowany wykres sparkline oparty o natywne SVG
+const Sparkline = React.memo(({ history, isUp, stockId }) => {
+  const data = history.slice(-45); // pobieramy tylko ostatnie 45 punktów dla małego wykresu
+  if (data.length < 2) return <div style={{ height: '80px' }} />;
+  
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min === 0 ? 1 : max - min;
+  
+  const height = 80;
+  const width = 300;
+  
+  const points = data.map((val, index) => {
+    const x = (index / (data.length - 1)) * width;
+    const y = height - 2 - ((val - min) / range) * (height - 4); // margines bezpieczeństwa
+    return { x, y };
+  });
+  
+  const pathData = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
+  const fillPathData = `${pathData} L ${width},${height} L 0,${height} Z`;
+  const gradientId = `sparkline-grad-${stockId}`;
+  
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="80" style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={isUp ? 'var(--success)' : 'var(--danger)'} stopOpacity="0.15" />
+          <stop offset="100%" stopColor={isUp ? 'var(--success)' : 'var(--danger)'} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      
+      {/* Obszar pod wykresem z gradientem */}
+      <path
+        d={fillPathData}
+        fill={`url(#${gradientId})`}
+        stroke="none"
+      />
+      
+      {/* Linia wykresu */}
+      <path
+        d={pathData}
+        fill="none"
+        stroke={isUp ? 'var(--success)' : 'var(--danger)'}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+});
+
+Sparkline.displayName = 'Sparkline';
 
 export function Market({ marketData }) {
   const [selectedStock, setSelectedStock] = useState(null);
@@ -34,7 +86,6 @@ export function Market({ marketData }) {
 
       <div className="md:grid-cols-2 lg:grid-cols-3" style={{ display: 'grid', gap: '1.5rem' }}>
         {filteredData.map(stock => {
-          const chartData = stock.history.map((val, i) => ({ index: i, value: val }));
           const isUp = stock.trend === 'up';
           
           return (
@@ -62,19 +113,7 @@ export function Market({ marketData }) {
                 </div>
                 
                 <div style={{ height: '80px', width: '100%', margin: '1rem 0' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <YAxis domain={['auto', 'auto']} hide />
-                      <Line 
-                        type="monotone" 
-                        dataKey="value" 
-                        stroke={isUp ? 'var(--success)' : 'var(--danger)'} 
-                        strokeWidth={2} 
-                        dot={false} 
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <Sparkline history={stock.history} isUp={isUp} stockId={stock.id} />
                 </div>
               </div>
 
@@ -98,3 +137,4 @@ export function Market({ marketData }) {
     </div>
   );
 }
+
