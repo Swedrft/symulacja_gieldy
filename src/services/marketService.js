@@ -124,10 +124,11 @@ class MarketService {
       let currentSimulatedPrice = stock.price;
       const volatility = stock.category === 'Krypto' ? 0.02 : (stock.category === 'ETF' ? 0.005 : 0.015);
       
-      // Historia (Random walk with momentum)
       let momentum = 0;
       let minPrice = stock.price;
       let maxPrice = stock.price;
+
+      const historyData = new Float32Array(1000);
 
       for (let i = 0; i < 1000; i++) {
         momentum += (Math.random() - 0.5) * 0.005;
@@ -136,13 +137,15 @@ class MarketService {
 
         const dailyChange = (Math.random() - 0.5) * volatility + momentum;
         currentSimulatedPrice = currentSimulatedPrice * (1 + dailyChange);
-        stock.history.unshift(Number(currentSimulatedPrice.toFixed(2)));
+        historyData[999 - i] = currentSimulatedPrice;
         
         if (currentSimulatedPrice > maxPrice) maxPrice = currentSimulatedPrice;
         if (currentSimulatedPrice < minPrice) minPrice = currentSimulatedPrice;
       }
       
+      stock.history = Array.from(historyData);
       stock.price = stock.history[stock.history.length - 1]; 
+      stock.momentum = momentum; // Zapisujemy końcowe momentum do użycia na żywo
       
       // --- Dane Fundamentalne (Mocki) ---
       const sharesOutstanding = Math.floor(Math.random() * 5000000000) + 100000000; // Ilość akcji
@@ -337,9 +340,15 @@ class MarketService {
         }
       }
 
-      this.stocks = this.stocks.map(stock => {
+      this.stocks.forEach(stock => {
         const volatility = stock.category === 'Krypto' ? 0.008 : (stock.category === 'ETF' ? 0.002 : 0.005);
-        let changePercent = (Math.random() * volatility * 2) - volatility;
+        
+        // Zmiana momentum
+        stock.momentum += (Math.random() - 0.5) * 0.003;
+        if (stock.momentum > 0.015) stock.momentum = 0.015;
+        if (stock.momentum < -0.015) stock.momentum = -0.015;
+
+        let changePercent = (Math.random() - 0.5) * volatility + stock.momentum;
         
         // Aplikowanie efektu makro
         if (this.currentMacroEvent && stock.category === this.currentMacroEvent.category) {
@@ -350,19 +359,18 @@ class MarketService {
         const oldPrice = stock.price;
         const newPrice = oldPrice * (1 + changePercent);
         
-        const newHistory = [...stock.history, newPrice].slice(-1000);
+        // Optymalizacja historii
+        stock.history.push(Number(newPrice.toFixed(2)));
+        if (stock.history.length > 1000) stock.history.shift();
         
-        return {
-          ...stock,
-          price: Number(newPrice.toFixed(2)),
-          change: Number((newPrice - oldPrice).toFixed(2)),
-          trend: newPrice >= oldPrice ? 'up' : 'down',
-          history: newHistory
-        };
+        stock.price = Number(newPrice.toFixed(2));
+        stock.change = Number((newPrice - oldPrice).toFixed(2));
+        stock.trend = newPrice >= oldPrice ? 'up' : 'down';
       });
 
+      // Powiadomienie (tworzymy nową tablicę ze względu na react)
       this.notify(currentNews, dividendEvent, macroNews);
-    }, 3000);
+    }, 4500);
   }
 }
 

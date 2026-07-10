@@ -201,7 +201,7 @@ class BrokerService {
 
   calculateCommission(value) {
     const rate = 0.0039;
-    const minCommission = 5.00;
+    const minCommission = 0.00; // Zmieniono z 5.00 na 0, by małe transakcje nie były stratne od razu
     const commission = value * rate;
     return commission > minCommission ? commission : minCommission;
   }
