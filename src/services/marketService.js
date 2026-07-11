@@ -316,6 +316,8 @@ class MarketService {
           date: new Date().toISOString()
         };
         randomStock.price = randomStock.price * (1 + (isPositive ? effect : -effect));
+        // Dodano: news mocno wpływa na momentum, tworząc trend
+        randomStock.momentum = isPositive ? 0.015 : -0.015;
       }
 
       if (Math.random() < 0.01) {
